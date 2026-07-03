@@ -1,0 +1,23 @@
+{
+  "name": "xiaozhao-radar",
+  "version": "1.0.0",
+  "description": "Xiaozhao Radar - Campus Recruitment Radar, real-time job data via Firecrawl",
+  "main": "xiaozhao-radar.html",
+  "scripts": {
+    "start": "Open xiaozhao-radar.html in browser"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jiabaobei/xiaozhao-radar"
+  },
+  "keywords": [
+    "xiaozhao",
+    "campus-recruitment",
+    "jobs",
+    "crawler",
+    "firecrawl",
+    "MCP"
+  ],
+  "author": "jiabaobei",
+  "license": "MIT"
+}

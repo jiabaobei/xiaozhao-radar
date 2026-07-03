@@ -1,0 +1,8 @@
+# OS file/folder
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Backup files
+*.bak
+*~

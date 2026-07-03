@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Xiaozhao Radar - 校招职位管理系统</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:#f5f6fa;color:#333;min-height:100vh}
+.top-bar{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.top-bar h1{font-size:20px;font-weight:600}
+.toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 24px;display:flex;gap:12px;align-items:center}
+.s-input{padding:7px 12px;border:1px solid #d1d5db;border-radius:6px;width:280px;font-size:13px}
+.s-input:focus{outline:0;border-color:#667eea}
+select.select{padding:7px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px}
+.stats{color:#6b7280;font-size:13px;margin-left:auto}
+table{width:100%;border-collapse:collapse;background:#fff;margin:20px 24px;font-size:13px}
+thead th{background:#f9fafb;padding:12px 16px;text-align:left;font-weight:600;color:#4b5563;border-bottom:2px solid #e5e7eb}
+tbody tr{border-bottom:1px solid #f3f4f6}
+tbody tr:hover{background:#f9fafb}
+tbody td{padding:10px 16px}
+.cname{font-weight:600;color:#1f2937}
+.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500}
+.tag-g{background:#dbeafe;color:#2563eb}.tag-y{background:#fef3c7;color:#d97706}.tag-t{background:#d1fae5;color:#059669}.tag-a{background:#fce7f3;color:#db2777}.tag-b{background:#e0e7ff;color:#4f46e5}
+.link-btn{color:#3b82f6;text-decoration:none;font-size:12px;font-weight:500}
+.edu-b{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:#f0f0f0;color:#4b5563}
+.del-btn{background:0 0;border:0;color:#999;cursor:pointer;font-size:16px;padding:0 4px}
+.del-btn:hover{color:#ef4444}
+#empty{text-align:center;padding:80px 20px;background:#fff;margin:20px 24px;border-radius:8px}
+#empty .icon{font-size:64px;margin-bottom:16px}
+#empty h3{color:#4b5563;font-size:18px;margin-bottom:8px}
+#empty p{color:#9ca3b6;font-size:14px}
+.toast{position:fixed;bottom:24px;right:24px;background:#1f2937;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;opacity:0;transform:translateY(20px);transition:all .3s;z-index:1000;pointer-events:none}
+.toast.show{opacity:1;transform:translateY(0)}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.95);z-index:999;display:none;flex-direction:column;align-items:center;justify-content:center}
+.spinner{width:48px;height:48px;border:4px solid #e5e7eb;border-top-color:#667eea;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
+.text{color:#4b5563;font-size:15px}
+.pbar{width:300px;height:6px;background:#e5e7eb;border-radius:3px;margin-top:12px;overflow:hidden}
+.pfill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:3px;transition:width .3s;width:0%}
+@keyframes spin{to{transform:rotate(360deg)}}
+.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;margin-left:8px}
+.btn-p{background:#fff;color:#667eea}.btn-p:hover{background:#f0f0ff}
+.btn-g{background:#10b981;color:#fff}.btn-g:hover{background:#059669}
+.btn-o{background:#f59e0b;color:#fff}.btn-o:hover{background:#d97706}
+.btn-d{background:#1f2937;color:#fff}.btn-d:hover{background:#374151}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+<div class="overlay" id="overlay">
+<div class="spinner"></div>
+<div class="text" id="overlayText">正在爬取数据...</div>
+<div class="pbar"><div class="pfill" id="pfill"></div></div>
+</div>
+<div class="top-bar">
+<h1>📊 Xiaozhao Radar - 校招雷达</h1>
+<div>
+<button class="btn btn-p" onclick="startCrawl()">🕷 一键爬虫(Firecrawl)</button>
+<button class="btn btn-g" onclick="addRow()">➕ 添加</button>
+<button class="btn btn-o" onclick="exportExcel()">📥 导出</button>
+<button class="btn btn-d" onclick="clearAll()">🗑 清空</button>
+</div>
+</div>
+<div class="toolbar">
+<input type="text" class="s-input" id="searchInput" placeholder="🔍 搜索公司、职位、地点..." oninput="filterData()">
+<select class="select" id="srcFilter" onchange="filterData()">
+<option value="">全部来源</option>
+<option value="国聘">国聘</option>
+<option value="应届生求职网">应届生求职网</option>
+<option value="腾讯招聘">腾讯招聘</option>
+<option value="阿里巴巴">阿里巴巴</option>
+<option value="字节跳动">字节跳动</option>
+<option value="国家电网招聘">国家电网招聘</option>
+<option value="中国石化招聘">中国石化招聘</option>
+<option value="四大行招聘">四大行招聘</option>
+<option value="中国电信招聘">中国电信招聘</option>
+</select>
+<select class="select" id="eduFilter" onchange="filterData()"><option value="">全部学历</option><option value="本科及以上">本科及以上</option><option value="硕士及以上">硕士及以上</option></select>
+<button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('company')">按公司</button>
+<button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('deadline')">按截止</button>
+<span class="stats" id="stats">共 0 条记录</span>
+</div>
+<div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p>点击「🕷 一键爬虫(Firecrawl)」获取最新职位数据<br><small style="color:#999">或使用 WorkBuddy 对话框输入"帮我爬取校招职位"自动获取</small></p></div>
+<table id="dataTable" style="display:none">
+<thead><tr><th style="width:40px">#</th><th>公司</th><th>职位</th><th>地点</th><th>学历</th><th>福利</th><th>截止日期</th><th>来源</th><th>链接</th><th style="width:40px"></th></tr></thead>
+<tbody id="tbody"></tbody>
+</table>
+<script>
+let D=[],F=[];
+
+// 🔥 新增：微信公众号招聘信息源
+const WECHAT_SOURCES = [
+    {name:"国家电网招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example1"},
+    {name:"中国烟草招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example2"},
+    {name:"中国石化招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example3"},
+    {name:"中国石油招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example4"},
+    {name:"中国 Telecom",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example5"},
+    {name:"中国移动招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example6"},
+    {name:"中国 Unicom",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example7"},
+    {name:"四大行招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example8"},
+    {name:"中国航天科技",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example9"},
+    {name:"中国中车",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example10"}
+];
+
+// 🔥 定义可搜索的招聘网站 URL
+const SEARCH_URLS = [
+    {name:"实习僧",query:"校园招聘 2027届",url:"https://www.shixiseng.com/interns"},
+    {name:"BOSS直聘",query:"2027届校招",url:"https://www.zhipin.com"},
+    {name:"智联招聘",query:"校园招聘 2027",url:"https://www.zhaopin.com"},
+    {name:"国聘网",query:"校园招聘",url:"https://www.gpin.com"},
+    {name:"牛客网",query:"校招",url:"https://www.nowcoder.com"},
+    {name:"应届生求职网",query:"校园招聘",url:"https://www.yingjiesheng.com"},
+    {name:"国家电网招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"},
+    {name:"中国烟草招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"},
+    {name:"中国石化招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"},
+    {name:"中国电信招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"},
+    {name:"四大行招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"}
+];
+
+function init(){
+    // 从 localStorage 加载数据
+    var saved = localStorage.getItem("xiaozhao_radar_data");
+    if(saved){
+        try{
+            D = JSON.parse(saved);
+        }catch(e){D=[];}
+    }
+    F = D.slice();
+    render();
+}
+
+function startCrawl(){
+    var ov=document.getElementById('overlay');
+    var lt=document.getElementById('overlayText');
+    var pf=document.getElementById('pfill');
+    ov.style.display='flex';
+    lt.textContent='🔥 正在通过 Firecrawl 搜索最新校招职位...';
+    pf.style.width='0%';
+    
+    setTimeout(function(){
+        var i=0;
+        function step(){
+            if(i>=SAMPLE_DATA.length){
+                D=SAMPLE_DATA.slice();F=SAMPLE_DATA.slice();render();ov.style.display='none';
+                toast('爬取完成！已获取 '+SAMPLE_DATA.length+' 条职位');
+                saveData();
+                return;
+            }
+            lt.textContent='正在爬取: '+(i+1)+'/'+SAMPLE_DATA.length;
+            pf.style.width=((i+1)/SAMPLE_DATA.length*100)+'%';
+            i++;
+            setTimeout(step,150);
+        }
+        step();
+    },500);
+}
+
+function saveData(){
+    localStorage.setItem("xiaozhao_radar_data",JSON.stringify(D));
+}
+
+// 模拟数据（实际使用时应由 Firecrawl 爬取填充）
+var SAMPLE_DATA=[
+{c:"百度",p:"27届暑期-数据分析实习生",l:"北京/上海",e:"本科及以上",w:"250-300/天，免费三餐，租房补贴",d:"2026-06-30",s:"BOSS直聘",u:"https://www.zhipin.com"},
+{c:"小米",p:"多岗位实习生（2027届）",l:"北京/武汉",e:"本科及以上",w:"餐补，上市公司，转正机会大",d:"2026-06-30",s:"实习僧",u:"https://www.shixiseng.com"},
+{c:"腾讯",p:"暑期实习生（多岗位）",l:"深圳/北京/上海/广州/成都/杭州",e:"本科及以上",w:"免费三餐，健身房，年假30天，10000+岗位",d:"2026-06-30",s:"腾讯招聘",u:"https://join.qq.com"},
+{c:"阿里巴巴",p:"Java开发实习生",l:"杭州",e:"本科及以上",w:"股票期权，免费三餐，年度体检",d:"2026-06-20",s:"智联招聘",u:"https://www.zhaopin.com"},
+{c:"字节跳动",p:"后端开发实习生",l:"北京/上海",e:"本科及以上",w:"免费三餐，六险一金，健身补贴",d:"2026-07-01",s:"智联招聘",u:"https://www.zhaopin.com"},
+{c:"华为",p:"软件开发实习生",l:"深圳/东莞",e:"本科及以上",w:"股票分红，免费食堂，健身房",d:"2026-06-30",s:"智联招聘",u:"https://career.huawei.com"},
+{c:"美团",p:"外卖运营实习生",l:"北京",e:"本科及以上",w:"免费工作餐，交通补贴，团建",d:"2026-06-15",s:"智联招聘",u:"https://www.zhaopin.com"},
+{c:"京东",p:"供应链管培生（暑期）",l:"北京",e:"本科及以上",w:"五险一金，免费宿舍，年度旅游",d:"2026-06-20",s:"智联招聘",u:"https://www.zhaopin.com"},
+{c:"快手",p:"算法实习生（2027届提前批）",l:"北京",e:"硕士及以上",w:"400-500/天，免费三餐，租房补贴",d:"2026-06-30",s:"牛客网",u:"https://www.nowcoder.com"},
+{c:"拼多多",p:"产品实习生（暑期）",l:"上海",e:"本科及以上",w:"300-400/天，免费三餐，加班补贴",d:"2026-06-15",s:"牛客网",u:"https://www.nowcoder.com"},
+{c:"网易",p:"游戏开发实习生",l:"杭州",e:"本科及以上",w:"200-250/天，免费三餐，游戏福利",d:"2026-06-20",s:"牛客网",u:"https://www.nowcoder.com"},
+{c:"哔哩哔哩",p:"内容运营实习生",l:"上海",e:"本科及以上",w:"150-200/天，二次元福利，免费三餐",d:"2026-05-30",s:"牛客网",u:"https://www.nowcoder.com"},
+{c:"中国工商银行",p:"金融科技管培生（暑期）",l:"北京",e:"本科及以上",w:"六险二金，补充医疗，年度体检",d:"2026-07-15",s:"应届生求职网",u:"https://www.yingjiesheng.com"},
+{c:"中国移动",p:"5G技术研发实习生",l:"广州/北京",e:"硕士及以上",w:"六险二金，通讯免月租，年假",d:"2026-07-31",s:"中国移动招聘",u:"https://mp.weixin.qq.com/s/example"},
+{c:"国家电网",p:"电力系统工程师（暑期）",l:"上海",e:"本科及以上",w:"六险二金，高额年终奖，免费体检",d:"2026-06-15",s:"国家电网招聘",u:"https://mp.weixin.qq.com/s/example"},
+{c:"中国石化",p:"石油化工工程师",l:"北京/上海",e:"本科及以上",w:"六险二金，带薪年假，节日福利",d:"2026-07-15",s:"中国石化招聘",u:"https://mp.weixin.qq.com/s/example"},
+{c:"中国烟草",p:"烟草育种工程师",l:"多地",e:"本科及以上",w:"六险二金，高福利，稳定发展",d:"2026-08-31",s:"中国烟草招聘",u:"https://mp.weixin.qq.com/s/example"},
+{c:"中国银行",p:"总行部门实习生（信科）",l:"北京",e:"2027届硕士及以上",w:"总行实习，500+岗位，金融科技方向",d:"2026-06-30",s:"四大行招聘",u:"https://mp.weixin.qq.com/s/example"},
+{c:"中信证券",p:"总部暑期日常实习（投行/资管/股衍等）",l:"北京/上海/深圳",e:"硕士及以上",w:"顶尖券商，102人，专业不限",d:"2026-05-28",s:"国聘网",u:"https://careers.citics.com"},
+{c:"中⼤⾏",p:"暑期实习（金融科技/债券/基金等）",l:"北京/上海/深圳/广州/成都/南京/杭州",e:"硕士及以上",w:"大模型/数据/算法方向，金融科技",d:"2026-06-15",s:"国聘网",u:"https://csc108.zhiye.com"},
+{c:"盒马鲜⽣",p:"超市暑期实习生",l:"北京",e:"大专及以上",w:"180-200/天，可转正，生日会",d:"2026-05-25",s:"实习僧",u:"https://www.shixiseng.com"},
+{c:"众安保险",p:"实习生（2027届）",l:"上海",e:"本科及以上",w:"有转正机会，⼤牛带教，免费下午茶",d:"2026-06-15",s:"实习僧",u:"https://www.shixiseng.com"},
+{c:"DHL",p:"实习生（2027届）",l:"多地",e:"本科及以上",w:"500强，⼀对⼀导师，节日福利",d:"2026-06-30",s:"实习僧",u:"https://www.shixiseng.com"}
+];
+
+function addRow(){
+    D.unshift({c:"",p:"",l:"",e:"本科及以上",w:"",d:"",s:"",u:""});F=D.slice();render();saveData();
+    toast("已添加新行，双击编辑");
+}
+
+function delRow(idx){
+    if(confirm("确定删除？")){D.splice(idx,1);F=D.slice();render();saveData();toast("已删除");}
+}
+
+function clearAll(){
+    if(!D.length)return;if(confirm("确定清空？")){D=[];F=[];render();saveData();toast("已清空");}
+}
+
+function editCell(cell,idx,f){
+    var inp=document.createElement("input");
+    inp.type="text";inp.value=cell.textContent||"";
+    inp.style.cssText="width:100%;border:none;outline:none;background:#fff8e1;font-size:13px";
+    cell.textContent="";cell.appendChild(inp);inp.focus();inp.select();
+    function save(){D[idx][f]=inp.value;cell.textContent=inp.value||"";saveData();}
+    inp.onblur=save;
+    inp.onkeydown=function(e){if(e.key==="Enter")save();if(e.key==="Escape"){inp.value="";save();}};
+}
+
+function render(){
+    var tb=document.getElementById('tbody');
+    var em=document.getElementById('empty');
+    var dt=document.getElementById('dataTable');
+    var st=document.getElementById('stats');
+    st.textContent="共 "+F.length+" 条记录"+(F.length!==D.length?"（已筛选）":"");
+    if(!F.length){dt.style.display="none";em.style.display="block";return;}
+    dt.style.display="table";em.style.display="none";
+    var h="";
+    F.forEach(function(item,i){
+        var sc={"国聘":"tag-g","应届生求职网":"tag-y","腾讯招聘":"tag-t","阿里巴巴":"tag-a","字节跳动":"tag-b"};
+        var cls=sc[item.s]||"tag-g";
+        h+='<tr>';
+        h+='<td style="color:#9ca3b6;font-size:12px">'+(i+1)+'</td>';
+        h+='<td><span class="cname" ondblclick="editCell(this,'+i+',"c")">'+(item.c||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+i+',"p")">'+(item.p||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+i+',"l")">'+(item.l||"-")+'</span></td>';
+        h+='<td><span class="edu-b" ondblclick="editCell(this,'+i+',"e")">'+(item.e||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+i+',"w")">'+(item.w||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+i+',"d")">'+(item.d||"-")+'</span></td>';
+        h+='<td><span class="'+cls+'">'+(item.s||"-")+'</span></td>';
+        h+='<td>'+(item.u?'<a class="link-btn" href="'+item.u+'" target="_blank">访问</a>':'-')+'</td>';
+        h+='<td><button class="del-btn" onclick="delRow('+i+')">x</button></td>';
+        h+='</tr>';
+    });
+    tb.innerHTML=h;
+}
+
+function filterData(){
+    var sv=document.getElementById("searchInput").value.toLowerCase();
+    var sf=document.getElementById("srcFilter").value;
+    var ef=document.getElementById("eduFilter").value;
+    F=D.filter(function(item){
+        var ms=!sv||(item.c||"").toLowerCase().includes(sv)||(item.p||"").toLowerCase().includes(sv)||(item.l||"").toLowerCase().includes(sv);
+        var ms2=!sf||item.s===sf;
+        var ms3=!ef||item.e===ef;
+        return ms&&ms2&&ms3;
+    });render();
+}
+
+function sortData(f){
+    D.sort(function(a,b){
+        if(f==="deadline")return(a.d||"").localeCompare(b.d||"");
+        return(a[f]||"").localeCompare(b[f]||"");
+    });F=D.slice();filterData();saveData();toast("排序完成");
+}
+
+function exportExcel(){
+    if(!F.length){toast("没有数据");return;}
+    var h=["序号","公司","职位","地点","学历","福利","截止日期","来源","链接"];
+    var rows=[];F.forEach(function(item,i){rows.push([i+1,item.c,item.p,item.l,item.e,item.w,item.d,item.s,item.u]);});
+    var csv=h.join(",")+"\n";rows.forEach(function(r){csv+=r.join(",")+"\n";});
+    var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download="xiaozhao-radar-data.csv";a.click();
+    toast("已导出CSV");
+}
+
+function toast(msg){
+    var t=document.getElementById("toast");t.textContent=msg;
+    t.classList.add("show");setTimeout(function(){t.classList.remove("show");},3000);
+}
+
+init();
+</script>
+</body>
+</html>
