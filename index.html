@@ -34,6 +34,9 @@ tbody td{padding:11px 16px;vertical-align:middle;color:#374151}
 #empty .icon{font-size:60px;margin-bottom:14px}
 #empty h3{color:#475569;font-size:18px;margin-bottom:8px}
 #empty p{color:#94a3b8;font-size:14px;line-height:1.7}
+#pagination{text-align:center;padding:15px 24px;background:#fff;margin:0 24px 20px;border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06)}
+#pagination .btn{margin:0 4px}
+#pageInfo{margin:0 12px;font-size:13px;color:#64748b;font-weight:500}
 .toast{position:fixed;bottom:24px;right:24px;background:#1f2937;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;opacity:0;transform:translateY(20px);transition:all .3s;z-index:1000;pointer-events:none;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 .toast.show{opacity:1;transform:translateY(0)}
 .overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);z-index:999;display:none;flex-direction:column;align-items:center;justify-content:center}
@@ -73,15 +76,9 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 <input type="text" class="s-input" id="searchInput" placeholder="🔍 搜索公司、职位、地点..." oninput="filterData()">
 <select class="select" id="srcFilter" onchange="filterData()">
 <option value="">全部来源</option>
-<option value="国聘">国聘</option>
-<option value="应届生求职网">应届生求职网</option>
-<option value="腾讯招聘">腾讯招聘</option>
-<option value="阿里巴巴">阿里巴巴</option>
-<option value="字节跳动">字节跳动</option>
-<option value="国家电网招聘">国家电网招聘</option>
-<option value="中国石化招聘">中国石化招聘</option>
-<option value="四大行招聘">四大行招聘</option>
-<option value="中国电信招聘">中国电信招聘</option>
+<option value="互联网">互联网大厂</option>
+<option value="央企">央企国企</option>
+<option value="综合">综合招聘</option>
 </select>
 <select class="select" id="eduFilter" onchange="filterData()"><option value="">全部学历</option><option value="本科及以上">本科及以上</option><option value="硕士及以上">硕士及以上</option></select>
 <input type="password" class="key-input" id="apiKey" placeholder="Firecrawl API Key (fc-...)" oninput="localStorage.setItem('xiaozhao_firecrawl_key',this.value)">
@@ -90,39 +87,147 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('deadline')">按截止</button>
 <span class="stats" id="stats">共 0 条记录</span>
 </div>
-<div class="hint">🔥 一键爬虫会真实抓取<b>国家电网/51job/应届生求职网</b>等官方校招公告页（Firecrawl scrape 模式，数据真实相关）。想要完整职位库，建议用本地 <b>OpenCLI</b> 适配器：<code>opencli xiaozhao search "2027 校招" -f json</code> 导出后点「📤 导入」。API Key 仅存本地浏览器，不上传。</div>
+<div class="hint">🔥 一键爬虫会真实抓取<b>腾讯/阿里巴巴/美团/字节跳动/华为/国家电网/中国石化</b>等100家央企互联网大厂官方招聘页（Firecrawl scrape 模式），3家综合招聘网站（51job/应届生/国聘）排最后。先加载20个站立即展示，后台继续加载剩余。API Key 仅存本地浏览器，不上传。</div>
 <div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p>填写上方 Firecrawl API Key 后点击「🕷 一键爬虫」获取真实职位<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p></div>
 <table id="dataTable" style="display:none">
 <thead><tr><th style="width:44px">#</th><th>公司</th><th>职位 / 标题</th><th>地点</th><th>学历</th><th>福利 / 摘要</th><th>截止日期</th><th>链接</th><th>来源</th><th style="width:44px"></th></tr></thead>
 <tbody id="tbody"></tbody>
 </table>
+<div id="pagination" style="display:none">
+<button class="btn btn-p" onclick="changePage(-1)">← 上一页</button>
+<span id="pageInfo"></span>
+<button class="btn btn-p" onclick="changePage(1)">下一页 →</button>
+<select class="select" style="margin-left:12px;width:auto" onchange="changePageSize(this.value)">
+<option value="20">20条/页</option>
+<option value="50">50条/页</option>
+<option value="100">100条/页</option>
+</select>
+</div>
 <script>
-let D=[],F=[];
+let D=[],F=[],currentPage=1,pageSize=20;
 
-// 🔥 真实爬虫：要搜索的校招信息源（央国企 + 互联网大厂）
-// 一键爬虫：抓取预置的权威校招官网（Firecrawl scrape 模式，中文校招相关）
-// 注意：Firecrawl 的 web search 对中文校招质量极差（实测返回 Wikipedia/外文），
-// 因此改走 scrape 抓取官网公告页，从 markdown 提取真实公告/职位链接。
 const CRAWL_SITES = [
-  {cat:"国家电网招聘", url:"https://zhaopin.sgcc.com.cn/"},
-  {cat:"51job校招",    url:"https://we.51job.com/pc/search?keyword=%E6%A0%A1%E6%8B%9B"},
-  {cat:"应届生求职网", url:"https://www.yingjiesheng.com/"}
+  // ===== 互联网大厂（50家）=====
+  {cat:"腾讯", url:"https://join.qq.com/"},
+  {cat:"阿里巴巴", url:"https://talent.alibaba.com/"},
+  {cat:"字节跳动", url:"https://jobs.bytedance.com/"},
+  {cat:"美团", url:"https://zhaopin.meituan.com/"},
+  {cat:"百度", url:"https://talent.baidu.com/"},
+  {cat:"京东", url:"https://zhaopin.jd.com/"},
+  {cat:"华为", url:"https://career.huawei.com/"},
+  {cat:"小米", url:"https://hr.xiaomi.com/"},
+  {cat:"网易", url:"https://hr.163.com/"},
+  {cat:"拼多多", url:"https://careers.pinduoduo.com/"},
+  {cat:"快手", url:"https://zhaopin.kuaishou.com/"},
+  {cat:"滴滴", url:"https://talent.didiglobal.com/"},
+  {cat:"B站", url:"https://jobs.bilibili.com/"},
+  {cat:"携程", url:"https://careers.ctrip.com/"},
+  {cat:"360", url:"https://talent.360.cn/"},
+  {cat:"搜狐", url:"https://hr.sohu.com/"},
+  {cat:"新浪微博", url:"https://career.sina.com/"},
+  {cat:"58同城", url:"https://talent.58.com/"},
+  {cat:"腾讯音乐", url:"https://join.tencentmusic.com/"},
+  {cat:"蚂蚁集团", url:"https://talent.antgroup.com/"},
+  {cat:"商汤科技", url:"https://www.sensetime.com/cn/careers"},
+  {cat:"旷视科技", url:"https://megvii.com/careers"},
+  {cat:"科大讯飞", url:"https://www.iflyrec.com/"},
+  {cat:"大疆创新", url:"https://we.dji.com/"},
+  {cat:"OPPO", url:"https://careers.oppo.com/"},
+  {cat:"vivo", url:"https://hr.vivo.com/"},
+  {cat:"荣耀", url:"https://career.hihonor.com/"},
+  {cat:"传音控股", url:"https://www.transsion.com/careers"},
+  {cat:"联想", url:"https://talent.lenovo.com.cn/"},
+  {cat:"中兴通讯", url:"https://hr.zte.com.cn/"},
+  {cat:"深信服", url:"https://talent.sangfor.com.cn/"},
+  {cat:"用友", url:"https://careers.yonyou.com/"},
+  {cat:"金山软件", url:"https://hr.kingsoft.com/"},
+  {cat:"米哈游", url:"https://hr.mihoyo.com/"},
+  {cat:"叠纸游戏", url:"https://hr.papegames.com/"},
+  {cat:"莉莉丝游戏", url:"https://www.lilithgames.com/careers"},
+  {cat:"鹰角网络", url:"https://www.hypergryph.com/careers"},
+  {cat:"Shopee", url:"https://careers.shopee.cn/"},
+  {cat:"微软中国", url:"https://careers.microsoft.com/"},
+  {cat:"苹果中国", url:"https://www.apple.com/jobs/cn/"},
+  {cat:"谷歌中国", url:"https://careers.google.com/"},
+  {cat:"亚马逊中国", url:"https://www.amazon.jobs/"},
+  {cat:"IBM中国", url:"https://www.ibm.com/careers"},
+  {cat:"甲骨文中国", url:"https://www.oracle.com/corporate/careers/"},
+  {cat:"SAP中国", url:"https://www.sap.com/careers"},
+  {cat:"英特尔中国", url:"https://jobs.intel.com/"},
+  {cat:"英伟达中国", url:"https://www.nvidia.com/en-us/about-nvidia/careers/"},
+  {cat:"戴尔中国", url:"https://www.dell.com/careers"},
+  {cat:"高通中国", url:"https://www.qualcomm.com/company/careers"},
+  {cat:"海尔智家", url:"https://careers.haier.com/"},
+  // ===== 央企国企（50家）=====
+  {cat:"国家电网", url:"https://zhaopin.sgcc.com.cn/"},
+  {cat:"中国石化", url:"https://job.sinopec.com/"},
+  {cat:"中国石油", url:"https://zhaopin.cnpc.com.cn/"},
+  {cat:"中国海油", url:"https://zhaopin.cnooc.com.cn/"},
+  {cat:"国家能源集团", url:"https://zhaopin.chnenergy.com.cn/"},
+  {cat:"中国华能", url:"https://www.chng.com.cn/"},
+  {cat:"中国大唐", url:"https://www.china-datang.com/"},
+  {cat:"中国华电", url:"https://www.chd.com.cn/"},
+  {cat:"国家电投", url:"https://www.spic.com.cn/"},
+  {cat:"三峡集团", url:"https://www.ctg.com.cn/"},
+  {cat:"中广核", url:"https://www.cgnpc.com.cn/"},
+  {cat:"中核集团", url:"https://www.cnnc.com.cn/"},
+  {cat:"中国航天科技", url:"https://www.spacechina.com/"},
+  {cat:"中国航天科工", url:"https://www.casic.com.cn/"},
+  {cat:"中国电科", url:"https://www.cetc.com.cn/"},
+  {cat:"中航工业", url:"https://www.avic.com/"},
+  {cat:"中国船舶", url:"https://www.cssc.net.cn/"},
+  {cat:"中国兵器", url:"https://www.norincogroup.com.cn/"},
+  {cat:"中国中化", url:"https://www.sinochem.com/"},
+  {cat:"中粮集团", url:"https://www.cofco.com/"},
+  {cat:"中国宝武", url:"https://www.baowugroup.com/"},
+  {cat:"中国一汽", url:"https://www.faw.com.cn/"},
+  {cat:"东风汽车", url:"https://www.dfmc.com.cn/"},
+  {cat:"中国中车", url:"https://www.crrcgc.cc/"},
+  {cat:"中国交建", url:"https://www.ccccltd.cn/"},
+  {cat:"中国铁建", url:"https://www.crcc.cn/"},
+  {cat:"中国中铁", url:"https://www.crecg.com/"},
+  {cat:"中国建筑", url:"https://www.cscec.com/"},
+  {cat:"中国电建", url:"https://www.powerchina.cn/"},
+  {cat:"中国能建", url:"https://www.ceec.net.cn/"},
+  {cat:"中国邮政", url:"https://www.chinapost.com.cn/"},
+  {cat:"国投集团", url:"https://www.sdic.com.cn/"},
+  {cat:"华润集团", url:"https://www.crc.com.hk/"},
+  {cat:"招商局集团", url:"https://www.cmhk.com/"},
+  {cat:"中国烟草", url:"https://www.tobacco.gov.cn/"},
+  {cat:"国家管网", url:"https://www.pipechina.com.cn/"},
+  {cat:"中储粮", url:"https://www.sinograin.com.cn/"},
+  {cat:"中国移动", url:"https://chinamobile.hotjob.cn/"},
+  {cat:"中国电信", url:"https://chinatelecom.hotjob.cn/"},
+  {cat:"中国联通", url:"https://chinaunicom.hotjob.cn/"},
+  {cat:"中国铁塔", url:"https://chinatowercom.hotjob.cn/"},
+  {cat:"中国有色", url:"https://www.cnmc.com.cn/"},
+  {cat:"中国铝业", url:"https://www.chalco.com.cn/"},
+  {cat:"中国建材", url:"https://www.cnbm.com.cn/"},
+  {cat:"中国化学", url:"https://www.cncec.cn/"},
+  {cat:"国药集团", url:"https://www.sinopharm.com/"},
+  {cat:"中国黄金", url:"https://www.chinagoldgroup.com/"},
+  {cat:"中国五矿", url:"https://www.minmetals.com/"},
+  {cat:"中国节能", url:"https://www.cecic.com.cn/"},
+  {cat:"中钢集团", url:"https://www.sinosteel.com/"},
+  // ===== 综合招聘网站（3家，排最后）=====
+  {cat:"51job校招", url:"https://we.51job.com/pc/search?keyword=%E6%A0%A1%E6%8B%9B"},
+  {cat:"应届生求职网", url:"https://www.yingjiesheng.com/"},
+  {cat:"国聘", url:"https://www.guopin.com/"}
 ];
 
-// 模拟数据（仅用于「演示数据」按钮，不会联网）
 var SAMPLE_DATA=[
-{c:"百度",p:"27届暑期-数据分析实习生",l:"北京/上海",e:"本科及以上",w:"250-300/天，免费三餐，租房补贴",d:"2026-06-30",s:"BOSS直聘",u:"https://www.zhipin.com"},
-{c:"小米",p:"多岗位实习生（2027届）",l:"北京/武汉",e:"本科及以上",w:"餐补，上市公司，转正机会大",d:"2026-06-30",s:"实习僧",u:"https://www.shixiseng.com"},
-{c:"腾讯",p:"暑期实习生（多岗位）",l:"深圳/北京/上海/广州/成都/杭州",e:"本科及以上",w:"免费三餐，健身房，年假30天",d:"2026-06-30",s:"腾讯招聘",u:"https://join.qq.com"},
-{c:"阿里巴巴",p:"Java开发实习生",l:"杭州",e:"本科及以上",w:"股票期权，免费三餐，年度体检",d:"2026-06-20",s:"阿里巴巴",u:"https://www.alibaba.com"},
-{c:"字节跳动",p:"后端开发实习生",l:"北京/上海",e:"本科及以上",w:"免费三餐，六险一金，健身补贴",d:"2026-07-01",s:"字节跳动",u:"https://www.bytedance.com"},
-{c:"华为",p:"软件开发实习生",l:"深圳/东莞",e:"本科及以上",w:"股票分红，免费食堂，健身房",d:"2026-06-30",s:"智联招聘",u:"https://career.huawei.com"},
-{c:"美团",p:"外卖运营实习生",l:"北京",e:"本科及以上",w:"免费工作餐，交通补贴",d:"2026-06-15",s:"智联招聘",u:"https://www.meituan.com"},
-{c:"中国工商银行",p:"金融科技管培生（暑期）",l:"北京",e:"本科及以上",w:"六险二金，补充医疗，年度体检",d:"2026-07-15",s:"四大行招聘",u:"https://www.icbc.com.cn"},
-{c:"中国移动",p:"5G技术研发实习生",l:"广州/北京",e:"硕士及以上",w:"六险二金，通讯免月租，年假",d:"2026-07-31",s:"中国移动招聘",u:"https://www.10086.cn"},
-{c:"国家电网",p:"电力系统工程师（暑期）",l:"上海",e:"本科及以上",w:"六险二金，高额年终奖",d:"2026-06-15",s:"国家电网招聘",u:"https://www.sgcc.com.cn"},
-{c:"中国石化",p:"石油化工工程师",l:"北京/上海",e:"本科及以上",w:"六险二金，带薪年假",d:"2026-07-15",s:"中国石化招聘",u:"https://www.sinopec.com"},
-{c:"中国烟草",p:"烟草育种工程师",l:"多地",e:"本科及以上",w:"六险二金，高福利",d:"2026-08-31",s:"中国烟草招聘",u:"https://www.tobacco.gov.cn"}
+{c:"百度",p:"27届暑期-数据分析实习生",l:"北京/上海",e:"本科及以上",w:"250-300/天，免费三餐，租房补贴",d:"2026-06-30",s:"BOSS直聘",t:"互联网",u:"https://www.zhipin.com"},
+{c:"小米",p:"多岗位实习生（2027届）",l:"北京/武汉",e:"本科及以上",w:"餐补，上市公司，转正机会大",d:"2026-06-30",s:"实习僧",t:"互联网",u:"https://www.shixiseng.com"},
+{c:"腾讯",p:"暑期实习生（多岗位）",l:"深圳/北京/上海/广州/成都/杭州",e:"本科及以上",w:"免费三餐，健身房，年假30天",d:"2026-06-30",s:"腾讯招聘",t:"互联网",u:"https://join.qq.com"},
+{c:"阿里巴巴",p:"Java开发实习生",l:"杭州",e:"本科及以上",w:"股票期权，免费三餐，年度体检",d:"2026-06-20",s:"阿里巴巴",t:"互联网",u:"https://www.alibaba.com"},
+{c:"字节跳动",p:"后端开发实习生",l:"北京/上海",e:"本科及以上",w:"免费三餐，六险一金，健身补贴",d:"2026-07-01",s:"字节跳动",t:"互联网",u:"https://www.bytedance.com"},
+{c:"华为",p:"软件开发实习生",l:"深圳/东莞",e:"本科及以上",w:"股票分红，免费食堂，健身房",d:"2026-06-30",s:"智联招聘",t:"互联网",u:"https://career.huawei.com"},
+{c:"美团",p:"外卖运营实习生",l:"北京",e:"本科及以上",w:"免费工作餐，交通补贴",d:"2026-06-15",s:"智联招聘",t:"互联网",u:"https://www.meituan.com"},
+{c:"中国工商银行",p:"金融科技管培生（暑期）",l:"北京",e:"本科及以上",w:"六险二金，补充医疗，年度体检",d:"2026-07-15",s:"四大行招聘",t:"央企",u:"https://www.icbc.com.cn"},
+{c:"中国移动",p:"5G技术研发实习生",l:"广州/北京",e:"硕士及以上",w:"六险二金，通讯免月租，年假",d:"2026-07-31",s:"中国移动招聘",t:"央企",u:"https://www.10086.cn"},
+{c:"国家电网",p:"电力系统工程师（暑期）",l:"上海",e:"本科及以上",w:"六险二金，高额年终奖",d:"2026-06-15",s:"国家电网招聘",t:"央企",u:"https://www.sgcc.com.cn"},
+{c:"中国石化",p:"石油化工工程师",l:"北京/上海",e:"本科及以上",w:"六险二金，带薪年假",d:"2026-07-15",s:"中国石化招聘",t:"央企",u:"https://www.sinopec.com"},
+{c:"中国烟草",p:"烟草育种工程师",l:"多地",e:"本科及以上",w:"六险二金，高福利",d:"2026-08-31",s:"中国烟草招聘",t:"央企",u:"https://www.tobacco.gov.cn"}
 ];
 
 function init(){
@@ -133,8 +238,6 @@ function init(){
     F=D.slice();render();
 }
 
-// 🔥 真实调用 Firecrawl REST API（浏览器直连，CORS 已开放）
-// 从 Firecrawl 抓回的 markdown 中提取真实校招公告/职位链接
 const NAV_WORDS=["首页","单位一览","应聘指南","帮助中心","更多","我的","登录","注册","个人中心","意见反馈","修改密码","注销","预约","报送","学籍","成绩","上传","获得帮助","技术支持","版权","关于我们","联系我们","站点地图","RSS"];
 const JOB_WORDS=["招聘","校招","应届","毕业生","实习","管培","招录","选拔","宣讲","录用"];
 function extractJobsFromMarkdown(md, siteUrl){
@@ -147,13 +250,13 @@ function extractJobsFromMarkdown(md, siteUrl){
         if(!m) return;
         const text=m[1].trim();
         const url=m[2].trim();
-        if(!text || text.length<6 || text.length>60) return;          // 太长/太短不是职位
-        if(!JOB_WORDS.some(function(w){return text.indexOf(w)>=0;})) return; // 必须含校招关键词
-        if(NAV_WORDS.some(function(w){return text.indexOf(w)>=0;})) return;  // 排除导航项
+        if(!text || text.length<6 || text.length>60) return;
+        if(!JOB_WORDS.some(function(w){return text.indexOf(w)>=0;})) return;
+        if(NAV_WORDS.some(function(w){return text.indexOf(w)>=0;})) return;
         if(!/^https?:\/\//.test(url)) return;
         try{
             const u=new URL(url);
-            const ok=(baseHost && u.hostname===baseHost) || /51job|yingjiesheng|zhaopin|sgcc|guopin|job\.com|campus/.test(u.hostname);
+            const ok=(baseHost && u.hostname===baseHost) || /51job|yingjiesheng|zhaopin|sgcc|guopin|job\.com|campus|hr\.|talent|career|join|recruit|hotjob/.test(u.hostname);
             if(!ok) return;
         }catch(e){ return; }
         if(seen[url]) return; seen[url]=1;
@@ -162,7 +265,6 @@ function extractJobsFromMarkdown(md, siteUrl){
     return out;
 }
 
-// 一键爬虫：用 Firecrawl 抓取预置校招官网（scrape 模式，中文相关），而非 web 搜索
 async function firecrawlScrape(siteUrl, key){
     const resp=await fetch("https://api.firecrawl.dev/v1/scrape",{
         method:"POST",
@@ -178,7 +280,6 @@ async function firecrawlScrape(siteUrl, key){
     return extractJobsFromMarkdown(md, siteUrl);
 }
 
-// ===== 从标题+描述智能提取 地点/学历/截止日期（搜索接口无结构化字段，靠正则补）=====
 const CITY_LIST = ["北京","上海","广州","深圳","成都","杭州","武汉","南京","重庆","西安","苏州","天津","长沙","郑州","青岛","东莞","佛山","宁波","无锡","厦门","福州","济南","合肥","昆明","大连","哈尔滨","沈阳","长春","石家庄","太原","南昌","贵阳","南宁","海口","兰州","银川","西宁","呼和浩特","乌鲁木齐","拉萨"];
 function extractLocation(text){
   if(/多地|全国|不限地点|工作地不限/.test(text)) return "多地";
@@ -203,77 +304,93 @@ function extractDeadline(text){
   if(m) return ("0"+m[1]).slice(-2)+"-"+("0"+m[2]).slice(-2);
   return "";
 }
+
+const INTERNET_COMPANIES=["腾讯","阿里巴巴","字节跳动","美团","百度","京东","华为","小米","网易","拼多多","快手","滴滴","B站","携程","360","搜狐","新浪微博","58同城","腾讯音乐","蚂蚁集团","商汤科技","旷视科技","科大讯飞","大疆创新","OPPO","vivo","荣耀","传音控股","联想","中兴通讯","深信服","用友","金山软件","米哈游","叠纸游戏","莉莉丝游戏","鹰角网络","Shopee","微软中国","苹果中国","谷歌中国","亚马逊中国","IBM中国","甲骨文中国","SAP中国","英特尔中国","英伟达中国","戴尔中国","高通中国","海尔智家"];
+const COMPREHENSIVE_SITES=["51job校招","应届生求职网","国聘"];
+function getType(cat){
+    if(COMPREHENSIVE_SITES.indexOf(cat)>=0) return "综合";
+    if(INTERNET_COMPANIES.indexOf(cat)>=0) return "互联网";
+    return "央企";
+}
 function mapResult(r, cat){
     const title=(r.title||r.p||"招聘信息").toString();
     const text=title;
-    const SITE_COMPANY={"国家电网招聘":"国家电网","51job校招":"51job","应届生求职网":"应届生求职网"};
     return {
-        c: SITE_COMPANY[cat]||cat,
+        c: cat,
         p: title.slice(0,80),
         l: extractLocation(text),
         e: extractEdu(text),
         w: "",
         d: extractDeadline(text),
         s: cat,
+        t: getType(cat),
         u: r.url||""
     };
 }
 
+// ===== 分批加载：先20个站展示，后台加载剩余 =====
 async function startCrawl(){
     const keyInput=document.getElementById('apiKey');
     const key=((keyInput.value||"").trim()||localStorage.getItem("xiaozhao_firecrawl_key")||"").toLowerCase();
-    if(!key){
-        toast("请先在上方填写你的 Firecrawl API Key");
-        keyInput.focus();
-        return;
-    }
+    if(!key){toast("请先填写 Firecrawl API Key");keyInput.focus();return;}
     localStorage.setItem("xiaozhao_firecrawl_key",key);
 
     var ov=document.getElementById('overlay');
     var lt=document.getElementById('overlayText');
     var pf=document.getElementById('pfill');
     ov.style.display='flex';
-    lt.textContent='🔥 正在通过 Firecrawl 搜索最新校招职位...';
     pf.style.width='0%';
 
     let all=[];
-    try{
-        for(let i=0;i<CRAWL_SITES.length;i++){
-            const s=CRAWL_SITES[i];
-            lt.textContent='正在抓取 ('+(i+1)+'/'+CRAWL_SITES.length+'): '+s.cat;
-            pf.style.width=((i+1)/CRAWL_SITES.length*100)+'%';
-            try{
-                const res=await firecrawlScrape(s.url,key);
-                res.forEach(r=>{ if(r&&r.url) all.push(mapResult(r,s.cat)); });
-            }catch(e){
-                if(/[Uu]nauthorized|Invalid/.test(e.message)){
-                    throw new Error("API Key 无效，请在上方输入框更新你的 Firecrawl Key");
-                }
-                console.warn("查询失败，已跳过:",q.q,e.message);
+    var FIRST_BATCH=20;
+
+    function dedup(arr){var seen={};return arr.filter(function(x){if(!x.u||seen[x.u])return false;seen[x.u]=1;return true;});}
+    function showData(){all=dedup(all);D=all;F=D.slice();currentPage=1;render();saveData();}
+
+    // 第一批：前20个站（互联网大厂优先），加载完立即展示
+    lt.textContent='正在加载前'+FIRST_BATCH+'个招聘网站...';
+    for(var i=0;i<Math.min(FIRST_BATCH,CRAWL_SITES.length);i++){
+        var s=CRAWL_SITES[i];
+        lt.textContent='正在抓取 ('+(i+1)+'/'+CRAWL_SITES.length+'): '+s.cat;
+        pf.style.width=((i+1)/CRAWL_SITES.length*100)+'%';
+        try{
+            var res=await firecrawlScrape(s.url,key);
+            res.forEach(function(r){if(r&&r.url)all.push(mapResult(r,s.cat));});
+        }catch(e){
+            if(/[Uu]nauthorized|Invalid/.test(e.message)){
+                ov.style.display='none';toast("API Key 无效，请更新");return;
             }
         }
-    }catch(e){
-        ov.style.display='none';
-        toast(e.message);
-        return;
     }
 
-    // 去重（按链接）
-    const seen={};
-    all=all.filter(x=>{ if(seen[x.u])return false; seen[x.u]=1; return true; });
+    // 立即展示第一批数据
+    showData();
+    ov.style.display='none';
+    toast('已加载'+D.length+'条，后台继续加载剩余'+(CRAWL_SITES.length-FIRST_BATCH)+'个站点...');
 
-    if(all.length){
-        D=all;F=D.slice();render();saveData();
-        ov.style.display='none';
-        toast('爬取完成！获取 '+all.length+' 条真实招聘信息');
-    }else{
-        ov.style.display='none';
-        toast('未获取到数据，请检查 Key 或网络');
+    // 后台加载剩余站点，每10个更新一次
+    ov.style.display='flex';
+    for(var j=FIRST_BATCH;j<CRAWL_SITES.length;j++){
+        var s2=CRAWL_SITES[j];
+        lt.textContent='后台加载 ('+(j+1)+'/'+CRAWL_SITES.length+'): '+s2.cat;
+        pf.style.width=((j+1)/CRAWL_SITES.length*100)+'%';
+        try{
+            var res2=await firecrawlScrape(s2.url,key);
+            res2.forEach(function(r){if(r&&r.url)all.push(mapResult(r,s2.cat));});
+        }catch(e){}
+        if((j+1)%10===0||j===CRAWL_SITES.length-1){
+            showData();
+        }
     }
+
+    ov.style.display='none';
+    showData();
+    if(D.length){toast('全部加载完成！共 '+D.length+' 条招聘信息');}
+    else{toast('未获取到数据，请检查 Key 或网络');}
 }
 
 function loadSample(){
-    D=SAMPLE_DATA.slice();F=D.slice();render();saveData();
+    D=SAMPLE_DATA.slice();F=D.slice();currentPage=1;render();saveData();
     toast("已加载 "+SAMPLE_DATA.length+" 条演示数据（未联网）");
 }
 
@@ -282,7 +399,7 @@ function saveData(){
 }
 
 function addRow(){
-    D.unshift({c:"",p:"",l:"",e:"本科及以上",w:"",d:"",s:"",u:""});F=D.slice();render();saveData();
+    D.unshift({c:"",p:"",l:"",e:"本科及以上",w:"",d:"",s:"",t:"互联网",u:""});F=D.slice();render();saveData();
     toast("已添加新行，双击编辑");
 }
 
@@ -310,32 +427,53 @@ function editCell(cell,idx,f){
     inp.onkeydown=function(e){if(e.key==="Enter")save();if(e.key==="Escape"){inp.value="";save();}};
 }
 
+// ===== 分页渲染 =====
 function render(){
     var tb=document.getElementById('tbody');
     var em=document.getElementById('empty');
     var dt=document.getElementById('dataTable');
     var st=document.getElementById('stats');
+    var pg=document.getElementById('pagination');
+    var pi=document.getElementById('pageInfo');
     st.textContent="共 "+F.length+" 条记录"+(F.length!==D.length?"（已筛选）":"");
-    if(!F.length){dt.style.display="none";em.style.display="block";return;}
+    if(!F.length){dt.style.display="none";em.style.display="block";pg.style.display="none";return;}
     dt.style.display="table";em.style.display="none";
+    var totalPages=Math.max(1,Math.ceil(F.length/pageSize));
+    if(currentPage>totalPages)currentPage=totalPages;
+    if(currentPage<1)currentPage=1;
+    var startIdx=(currentPage-1)*pageSize;
+    var pageData=F.slice(startIdx,startIdx+pageSize);
+    pi.textContent="第 "+currentPage+"/"+totalPages+" 页（"+(startIdx+1)+"-"+Math.min(startIdx+pageSize,F.length)+"条）";
+    pg.style.display="block";
     var h="";
-    F.forEach(function(item,i){
-        var sc={"国聘":"tag-g","应届生求职网":"tag-y","腾讯招聘":"tag-t","阿里巴巴":"tag-a","字节跳动":"tag-b"};
-        var cls=sc[item.s]||"tag-g";
+    pageData.forEach(function(item,i){
+        var realIdx=startIdx+i;
+        var sc={"互联网":"tag-t","央企":"tag-g","综合":"tag-y"};
+        var cls=sc[item.t]||"tag-g";
         h+='<tr>';
-        h+='<td style="color:#9ca3b6;font-size:12px">'+(i+1)+'</td>';
-        h+='<td><span class="cname" ondblclick="editCell(this,'+i+',\"c\")">'+(item.c||"-")+'</span></td>';
-        h+='<td><span class="t-title" title="'+esc(item.p)+'" ondblclick="editCell(this,'+i+',\"p\")">'+(item.p||"-")+'</span></td>';
-        h+='<td><span ondblclick="editCell(this,'+i+',\"l\")">'+(item.l||"-")+'</span></td>';
-        h+='<td><span class="edu-b" ondblclick="editCell(this,'+i+',\"e\")">'+(item.e||"-")+'</span></td>';
-        h+='<td><span ondblclick="editCell(this,'+i+',\"w\")">'+(item.w||"-")+'</span></td>';
-        h+='<td><span ondblclick="editCell(this,'+i+',\"d\")">'+(item.d||"-")+'</span></td>';
+        h+='<td style="color:#9ca3b6;font-size:12px">'+(realIdx+1)+'</td>';
+        h+='<td><span class="cname" ondblclick="editCell(this,'+realIdx+',\'c\')">'+(item.c||"-")+'</span></td>';
+        h+='<td><span class="t-title" title="'+esc(item.p)+'" ondblclick="editCell(this,'+realIdx+',\'p\')">'+(item.p||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+realIdx+',\'l\')">'+(item.l||"-")+'</span></td>';
+        h+='<td><span class="edu-b" ondblclick="editCell(this,'+realIdx+',\'e\')">'+(item.e||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+realIdx+',\'w\')">'+(item.w||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+realIdx+',\'d\')">'+(item.d||"-")+'</span></td>';
         h+='<td>'+(item.u?'<a class="link-btn" href="'+item.u+'" target="_blank">访问</a>':'-')+'</td>';
         h+='<td><span class="'+cls+'">'+(item.s||"-")+'</span></td>';
-        h+='<td><button class="del-btn" onclick="delRow('+i+')">×</button></td>';
+        h+='<td><button class="del-btn" onclick="delRow('+realIdx+')">×</button></td>';
         h+='</tr>';
     });
     tb.innerHTML=h;
+}
+
+function changePage(delta){
+    currentPage+=delta;
+    render();
+}
+function changePageSize(size){
+    pageSize=parseInt(size);
+    currentPage=1;
+    render();
 }
 
 function filterData(){
@@ -344,10 +482,10 @@ function filterData(){
     var ef=document.getElementById("eduFilter").value;
     F=D.filter(function(item){
         var ms=!sv||(item.c||"").toLowerCase().includes(sv)||(item.p||"").toLowerCase().includes(sv)||(item.l||"").toLowerCase().includes(sv);
-        var ms2=!sf||item.s===sf;
+        var ms2=!sf||!item.t||item.t===sf;
         var ms3=!ef||item.e===ef;
         return ms&&ms2&&ms3;
-    });render();
+    });currentPage=1;render();
 }
 
 function sortData(f){
@@ -366,7 +504,6 @@ function exportExcel(){
     toast("已导出CSV");
 }
 
-// 📤 导入：支持 OpenCLI（opencli xiaozhao search -f json）或其他工具导出的 JSON/CSV
 function handleImport(input){
     var file=input.files[0];
     if(!file){return;}
@@ -387,21 +524,23 @@ function handleImport(input){
                 rows=parseCSV(text);
             }
             rows=rows.map(function(r){
-                var loc=[r.city,r.district].filter(Boolean).join("/")||r.l||r.location||r.地点||"";
-                var welfare=[(r.salary||r.salaryMin?(r.salary||r.salaryMin):""),r.tags,r.welfare,r.summary].filter(Boolean).join(" ")||r.w||r.福利||"";
+                var loc=[r.city,r.district].filter(Boolean).join("/")||r.l||r.location||"";
+                var welfare=[(r.salary||r.salaryMin?(r.salary||r.salaryMin):""),r.tags,r.welfare,r.summary].filter(Boolean).join(" ")||r.w||"";
+                var company=r.c||r.company||r.companyFull||"";
                 return {
-                    c: r.c||r.company||r.companyFull||r.公司||"",
-                    p: r.p||r.position||r.title||r.职位||"",
+                    c: company,
+                    p: r.p||r.position||r.title||"",
                     l: loc,
-                    e: r.e||r.edu||r.education||r.degree||r.学历||"",
+                    e: r.e||r.edu||r.education||r.degree||"",
                     w: welfare,
-                    d: r.d||r.deadline||r.issueDate||r.截止||"",
-                    s: r.s||r.source||r.来源||"OpenCLI导入",
-                    u: r.u||r.url||r.companyUrl||r.link||r.链接||""
+                    d: r.d||r.deadline||r.issueDate||"",
+                    s: r.s||r.source||"OpenCLI导入",
+                    t: getType(company),
+                    u: r.u||r.url||r.companyUrl||r.link||""
                 };
             }).filter(function(r){return r.c||r.p;});
             if(!rows.length){toast("没有解析到有效记录");input.value="";return;}
-            D=rows;F=D.slice();render();saveData();
+            D=rows;F=D.slice();currentPage=1;render();saveData();
             toast("已导入 "+rows.length+" 条记录");
         }catch(err){
             toast("导入失败："+err.message);
@@ -411,7 +550,6 @@ function handleImport(input){
     reader.readAsText(file,"utf-8");
 }
 
-// 简易 CSV 解析（兼容引号包裹的字段）
 function parseCSV(text){
     var lines=text.replace(/\r/g,"").split("\n").filter(function(l){return l.trim()!=="";});
     if(!lines.length)return [];
