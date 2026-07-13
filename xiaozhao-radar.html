@@ -6,43 +6,49 @@
 <title>Xiaozhao Radar - 校招职位管理系统</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,"Segoe UI","Microsoft YaHei",sans-serif;background:#f5f6fa;color:#333;min-height:100vh}
-.top-bar{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:16px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
-.top-bar h1{font-size:20px;font-weight:600}
-.toolbar{background:#fff;border-bottom:1px solid #e5e7eb;padding:12px 24px;display:flex;gap:12px;align-items:center}
-.s-input{padding:7px 12px;border:1px solid #d1d5db;border-radius:6px;width:280px;font-size:13px}
-.s-input:focus{outline:0;border-color:#667eea}
-select.select{padding:7px 12px;border:1px solid #d1d5db;border-radius:6px;font-size:13px}
-.stats{color:#6b7280;font-size:13px;margin-left:auto}
-table{width:100%;border-collapse:collapse;background:#fff;margin:20px 24px;font-size:13px}
-thead th{background:#f9fafb;padding:12px 16px;text-align:left;font-weight:600;color:#4b5563;border-bottom:2px solid #e5e7eb}
-tbody tr{border-bottom:1px solid #f3f4f6}
-tbody tr:hover{background:#f9fafb}
-tbody td{padding:10px 16px}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:#eef1f6;color:#1f2937;min-height:100vh}
+.top-bar{background:linear-gradient(135deg,#5b6ef5,#7c3aed);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(91,110,245,.25)}
+.top-bar h1{font-size:19px;font-weight:600;letter-spacing:.5px}
+.toolbar{background:#fff;border-bottom:1px solid #eceef3;padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.s-input,.key-input,.select{padding:8px 12px;border:1px solid #dfe3ea;border-radius:8px;font-size:13px;background:#fbfcfe;transition:border-color .15s,box-shadow .15s}
+.s-input{width:280px}
+.key-input{width:240px}
+.s-input:focus,.key-input:focus,.select:focus{outline:0;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.12)}
+.stats{color:#6b7280;font-size:13px;margin-left:auto;font-weight:500}
+table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);margin:20px 24px;font-size:13px}
+thead th{background:#f8fafc;padding:13px 16px;text-align:left;font-weight:600;color:#64748b;font-size:12px;letter-spacing:.3px;border-bottom:1px solid #eceef3}
+tbody tr{border-bottom:1px solid #f1f3f7;transition:background .12s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:#f7f8ff}
+tbody td{padding:11px 16px;vertical-align:middle;color:#374151}
 .cname{font-weight:600;color:#1f2937}
-.tag{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:500}
-.tag-g{background:#dbeafe;color:#2563eb}.tag-y{background:#fef3c7;color:#d97706}.tag-t{background:#d1fae5;color:#059669}.tag-a{background:#fce7f3;color:#db2777}.tag-b{background:#e0e7ff;color:#4f46e5}
-.link-btn{color:#3b82f6;text-decoration:none;font-size:12px;font-weight:500}
-.edu-b{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;background:#f0f0f0;color:#4b5563}
-.del-btn{background:0 0;border:0;color:#999;cursor:pointer;font-size:16px;padding:0 4px}
+.t-title{max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.tag{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;white-space:nowrap}
+.tag-g{background:#e0ecff;color:#2563eb}.tag-y{background:#fef3c7;color:#b45309}.tag-t{background:#d1fae5;color:#047857}.tag-a{background:#fce7f3;color:#be185d}.tag-b{background:#e0e7ff;color:#4338ca}.tag-s{background:#ede9fe;color:#6d28d9}
+.link-btn{color:#5b6ef5;text-decoration:none;font-size:12px;font-weight:600;padding:4px 10px;border:1px solid #e0e3ff;border-radius:6px;transition:all .15s;white-space:nowrap}
+.link-btn:hover{background:#5b6ef5;color:#fff;border-color:#5b6ef5}
+.edu-b{display:inline-block;padding:3px 9px;border-radius:6px;font-size:11px;background:#f1f5f9;color:#475569;white-space:nowrap}
+.del-btn{background:0 0;border:0;color:#cbd2dc;cursor:pointer;font-size:16px;padding:2px 6px;transition:color .15s}
 .del-btn:hover{color:#ef4444}
-#empty{text-align:center;padding:80px 20px;background:#fff;margin:20px 24px;border-radius:8px}
-#empty .icon{font-size:64px;margin-bottom:16px}
-#empty h3{color:#4b5563;font-size:18px;margin-bottom:8px}
-#empty p{color:#9ca3b6;font-size:14px}
-.toast{position:fixed;bottom:24px;right:24px;background:#1f2937;color:#fff;padding:12px 20px;border-radius:8px;font-size:14px;opacity:0;transform:translateY(20px);transition:all .3s;z-index:1000;pointer-events:none}
+#empty{text-align:center;padding:70px 20px;background:#fff;margin:20px 24px;border-radius:14px;box-shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06)}
+#empty .icon{font-size:60px;margin-bottom:14px}
+#empty h3{color:#475569;font-size:18px;margin-bottom:8px}
+#empty p{color:#94a3b8;font-size:14px;line-height:1.7}
+.toast{position:fixed;bottom:24px;right:24px;background:#1f2937;color:#fff;padding:12px 20px;border-radius:10px;font-size:14px;opacity:0;transform:translateY(20px);transition:all .3s;z-index:1000;pointer-events:none;max-width:360px;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 .toast.show{opacity:1;transform:translateY(0)}
-.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.95);z-index:999;display:none;flex-direction:column;align-items:center;justify-content:center}
-.spinner{width:48px;height:48px;border:4px solid #e5e7eb;border-top-color:#667eea;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
-.text{color:#4b5563;font-size:15px}
+.overlay{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(255,255,255,.96);z-index:999;display:none;flex-direction:column;align-items:center;justify-content:center}
+.spinner{width:46px;height:46px;border:4px solid #e5e7eb;border-top-color:#7c3aed;border-radius:50%;animation:spin .8s linear infinite;margin-bottom:16px}
+.text{color:#475569;font-size:15px;font-weight:500}
 .pbar{width:300px;height:6px;background:#e5e7eb;border-radius:3px;margin-top:12px;overflow:hidden}
-.pfill{height:100%;background:linear-gradient(90deg,#667eea,#764ba2);border-radius:3px;transition:width .3s;width:0%}
+.pfill{height:100%;background:linear-gradient(90deg,#5b6ef5,#7c3aed);border-radius:3px;transition:width .3s;width:0%}
 @keyframes spin{to{transform:rotate(360deg)}}
-.btn{padding:8px 16px;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;margin-left:8px}
-.btn-p{background:#fff;color:#667eea}.btn-p:hover{background:#f0f0ff}
+.btn{padding:8px 15px;border:none;border-radius:8px;cursor:pointer;font-size:13px;font-weight:500;transition:all .2s;margin-left:8px}
+.btn-p{background:#eef0ff;color:#5b6ef5}.btn-p:hover{background:#e0e3ff}
 .btn-g{background:#10b981;color:#fff}.btn-g:hover{background:#059669}
 .btn-o{background:#f59e0b;color:#fff}.btn-o:hover{background:#d97706}
-.btn-d{background:#1f2937;color:#fff}.btn-d:hover{background:#374151}
+.btn-d{background:#334155;color:#fff}.btn-d:hover{background:#1e293b}
+.hint{font-size:12px;color:#94a3b8;padding:10px 24px 4px;background:#eef1f6;line-height:1.6}
+code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-size:11px}
 </style>
 </head>
 <body>
@@ -58,6 +64,8 @@ tbody td{padding:10px 16px}
 <button class="btn btn-p" onclick="startCrawl()">🕷 一键爬虫(Firecrawl)</button>
 <button class="btn btn-g" onclick="addRow()">➕ 添加</button>
 <button class="btn btn-o" onclick="exportExcel()">📥 导出</button>
+<input type="file" id="importFile" accept=".json,.csv" style="display:none" onchange="handleImport(this)">
+<button class="btn btn-o" style="background:#0ea5e9;color:#fff" onclick="document.getElementById('importFile').click()">📤 导入</button>
 <button class="btn btn-d" onclick="clearAll()">🗑 清空</button>
 </div>
 </div>
@@ -76,115 +84,202 @@ tbody td{padding:10px 16px}
 <option value="中国电信招聘">中国电信招聘</option>
 </select>
 <select class="select" id="eduFilter" onchange="filterData()"><option value="">全部学历</option><option value="本科及以上">本科及以上</option><option value="硕士及以上">硕士及以上</option></select>
+<input type="password" class="key-input" id="apiKey" placeholder="Firecrawl API Key (fc-...)" oninput="localStorage.setItem('xiaozhao_firecrawl_key',this.value)">
+<button class="btn btn-p" style="font-size:12px;padding:6px 12px;margin-left:0" onclick="loadSample()">📋 演示数据</button>
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('company')">按公司</button>
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('deadline')">按截止</button>
 <span class="stats" id="stats">共 0 条记录</span>
 </div>
-<div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p>点击「🕷 一键爬虫(Firecrawl)」获取最新职位数据<br><small style="color:#999">或使用 WorkBuddy 对话框输入"帮我爬取校招职位"自动获取</small></p></div>
+<div class="hint">🔥 一键爬虫会真实抓取<b>国家电网/51job/应届生求职网</b>等官方校招公告页（Firecrawl scrape 模式，数据真实相关）。想要完整职位库，建议用本地 <b>OpenCLI</b> 适配器：<code>opencli xiaozhao search "2027 校招" -f json</code> 导出后点「📤 导入」。API Key 仅存本地浏览器，不上传。</div>
+<div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p>填写上方 Firecrawl API Key 后点击「🕷 一键爬虫」获取真实职位<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p></div>
 <table id="dataTable" style="display:none">
-<thead><tr><th style="width:40px">#</th><th>公司</th><th>职位</th><th>地点</th><th>学历</th><th>福利</th><th>截止日期</th><th>来源</th><th>链接</th><th style="width:40px"></th></tr></thead>
+<thead><tr><th style="width:44px">#</th><th>公司</th><th>职位 / 标题</th><th>地点</th><th>学历</th><th>福利 / 摘要</th><th>截止日期</th><th>链接</th><th>来源</th><th style="width:44px"></th></tr></thead>
 <tbody id="tbody"></tbody>
 </table>
 <script>
 let D=[],F=[];
 
-// 🔥 新增：微信公众号招聘信息源
-const WECHAT_SOURCES = [
-    {name:"国家电网招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example1"},
-    {name:"中国烟草招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example2"},
-    {name:"中国石化招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example3"},
-    {name:"中国石油招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example4"},
-    {name:"中国 Telecom",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example5"},
-    {name:"中国移动招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example6"},
-    {name:"中国 Unicom",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example7"},
-    {name:"四大行招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example8"},
-    {name:"中国航天科技",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example9"},
-    {name:"中国中车",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example10"}
+// 🔥 真实爬虫：要搜索的校招信息源（央国企 + 互联网大厂）
+// 一键爬虫：抓取预置的权威校招官网（Firecrawl scrape 模式，中文校招相关）
+// 注意：Firecrawl 的 web search 对中文校招质量极差（实测返回 Wikipedia/外文），
+// 因此改走 scrape 抓取官网公告页，从 markdown 提取真实公告/职位链接。
+const CRAWL_SITES = [
+  {cat:"国家电网招聘", url:"https://zhaopin.sgcc.com.cn/"},
+  {cat:"51job校招",    url:"https://we.51job.com/pc/search?keyword=%E6%A0%A1%E6%8B%9B"},
+  {cat:"应届生求职网", url:"https://www.yingjiesheng.com/"}
 ];
 
-// 🔥 定义可搜索的招聘网站 URL
-const SEARCH_URLS = [
-    {name:"实习僧",query:"校园招聘 2027届",url:"https://www.shixiseng.com/interns"},
-    {name:"BOSS直聘",query:"2027届校招",url:"https://www.zhipin.com"},
-    {name:"智联招聘",query:"校园招聘 2027",url:"https://www.zhaopin.com"},
-    {name:"国聘网",query:"校园招聘",url:"https://www.gpin.com"},
-    {name:"牛客网",query:"校招",url:"https://www.nowcoder.com"},
-    {name:"应届生求职网",query:"校园招聘",url:"https://www.yingjiesheng.com"},
-    {name:"国家电网招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"},
-    {name:"中国烟草招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"},
-    {name:"中国石化招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"},
-    {name:"中国电信招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"},
-    {name:"四大行招聘",query:"2027届校园招聘",url:"https://mp.weixin.qq.com/s/example"}
+// 模拟数据（仅用于「演示数据」按钮，不会联网）
+var SAMPLE_DATA=[
+{c:"百度",p:"27届暑期-数据分析实习生",l:"北京/上海",e:"本科及以上",w:"250-300/天，免费三餐，租房补贴",d:"2026-06-30",s:"BOSS直聘",u:"https://www.zhipin.com"},
+{c:"小米",p:"多岗位实习生（2027届）",l:"北京/武汉",e:"本科及以上",w:"餐补，上市公司，转正机会大",d:"2026-06-30",s:"实习僧",u:"https://www.shixiseng.com"},
+{c:"腾讯",p:"暑期实习生（多岗位）",l:"深圳/北京/上海/广州/成都/杭州",e:"本科及以上",w:"免费三餐，健身房，年假30天",d:"2026-06-30",s:"腾讯招聘",u:"https://join.qq.com"},
+{c:"阿里巴巴",p:"Java开发实习生",l:"杭州",e:"本科及以上",w:"股票期权，免费三餐，年度体检",d:"2026-06-20",s:"阿里巴巴",u:"https://www.alibaba.com"},
+{c:"字节跳动",p:"后端开发实习生",l:"北京/上海",e:"本科及以上",w:"免费三餐，六险一金，健身补贴",d:"2026-07-01",s:"字节跳动",u:"https://www.bytedance.com"},
+{c:"华为",p:"软件开发实习生",l:"深圳/东莞",e:"本科及以上",w:"股票分红，免费食堂，健身房",d:"2026-06-30",s:"智联招聘",u:"https://career.huawei.com"},
+{c:"美团",p:"外卖运营实习生",l:"北京",e:"本科及以上",w:"免费工作餐，交通补贴",d:"2026-06-15",s:"智联招聘",u:"https://www.meituan.com"},
+{c:"中国工商银行",p:"金融科技管培生（暑期）",l:"北京",e:"本科及以上",w:"六险二金，补充医疗，年度体检",d:"2026-07-15",s:"四大行招聘",u:"https://www.icbc.com.cn"},
+{c:"中国移动",p:"5G技术研发实习生",l:"广州/北京",e:"硕士及以上",w:"六险二金，通讯免月租，年假",d:"2026-07-31",s:"中国移动招聘",u:"https://www.10086.cn"},
+{c:"国家电网",p:"电力系统工程师（暑期）",l:"上海",e:"本科及以上",w:"六险二金，高额年终奖",d:"2026-06-15",s:"国家电网招聘",u:"https://www.sgcc.com.cn"},
+{c:"中国石化",p:"石油化工工程师",l:"北京/上海",e:"本科及以上",w:"六险二金，带薪年假",d:"2026-07-15",s:"中国石化招聘",u:"https://www.sinopec.com"},
+{c:"中国烟草",p:"烟草育种工程师",l:"多地",e:"本科及以上",w:"六险二金，高福利",d:"2026-08-31",s:"中国烟草招聘",u:"https://www.tobacco.gov.cn"}
 ];
 
 function init(){
-    // 从 localStorage 加载数据
-    var saved = localStorage.getItem("xiaozhao_radar_data");
-    if(saved){
-        try{
-            D = JSON.parse(saved);
-        }catch(e){D=[];}
-    }
-    F = D.slice();
-    render();
+    var saved=localStorage.getItem("xiaozhao_radar_data");
+    if(saved){try{D=JSON.parse(saved);}catch(e){D=[];}}
+    var k=localStorage.getItem("xiaozhao_firecrawl_key");
+    if(k){document.getElementById('apiKey').value=k;}
+    F=D.slice();render();
 }
 
-function startCrawl(){
+// 🔥 真实调用 Firecrawl REST API（浏览器直连，CORS 已开放）
+// 从 Firecrawl 抓回的 markdown 中提取真实校招公告/职位链接
+const NAV_WORDS=["首页","单位一览","应聘指南","帮助中心","更多","我的","登录","注册","个人中心","意见反馈","修改密码","注销","预约","报送","学籍","成绩","上传","获得帮助","技术支持","版权","关于我们","联系我们","站点地图","RSS"];
+const JOB_WORDS=["招聘","校招","应届","毕业生","实习","管培","招录","选拔","宣讲","录用"];
+function extractJobsFromMarkdown(md, siteUrl){
+    const links=md.match(/\[[^\]!][^\]]*\]\([^)]+\)/g)||[];
+    const out=[]; const seen={};
+    let baseHost="";
+    try{ baseHost=new URL(siteUrl).hostname; }catch(e){}
+    links.forEach(function(l){
+        const m=l.match(/\[([^\]]+)\]\(([^)]+)\)/);
+        if(!m) return;
+        const text=m[1].trim();
+        const url=m[2].trim();
+        if(!text || text.length<6 || text.length>60) return;          // 太长/太短不是职位
+        if(!JOB_WORDS.some(function(w){return text.indexOf(w)>=0;})) return; // 必须含校招关键词
+        if(NAV_WORDS.some(function(w){return text.indexOf(w)>=0;})) return;  // 排除导航项
+        if(!/^https?:\/\//.test(url)) return;
+        try{
+            const u=new URL(url);
+            const ok=(baseHost && u.hostname===baseHost) || /51job|yingjiesheng|zhaopin|sgcc|guopin|job\.com|campus/.test(u.hostname);
+            if(!ok) return;
+        }catch(e){ return; }
+        if(seen[url]) return; seen[url]=1;
+        out.push({title:text, url:url});
+    });
+    return out;
+}
+
+// 一键爬虫：用 Firecrawl 抓取预置校招官网（scrape 模式，中文相关），而非 web 搜索
+async function firecrawlScrape(siteUrl, key){
+    const resp=await fetch("https://api.firecrawl.dev/v1/scrape",{
+        method:"POST",
+        headers:{"Authorization":"Bearer "+key,"Content-Type":"application/json"},
+        body:JSON.stringify({url:siteUrl, formats:["markdown"], onlyMainContent:true})
+    });
+    if(!resp.ok){
+        const err=await resp.json().catch(()=>({}));
+        throw new Error(err.error||("HTTP "+resp.status));
+    }
+    const json=await resp.json();
+    const md=(json.data&&json.data.markdown)||"";
+    return extractJobsFromMarkdown(md, siteUrl);
+}
+
+// ===== 从标题+描述智能提取 地点/学历/截止日期（搜索接口无结构化字段，靠正则补）=====
+const CITY_LIST = ["北京","上海","广州","深圳","成都","杭州","武汉","南京","重庆","西安","苏州","天津","长沙","郑州","青岛","东莞","佛山","宁波","无锡","厦门","福州","济南","合肥","昆明","大连","哈尔滨","沈阳","长春","石家庄","太原","南昌","贵阳","南宁","海口","兰州","银川","西宁","呼和浩特","乌鲁木齐","拉萨"];
+function extractLocation(text){
+  if(/多地|全国|不限地点|工作地不限/.test(text)) return "多地";
+  var found=[];
+  CITY_LIST.forEach(function(c){ if(text.indexOf(c)>=0) found.push(c); });
+  if(found.length) return found.slice(0,4).join("/");
+  return "";
+}
+function extractEdu(text){
+  if(/博士/.test(text)) return "博士及以上";
+  if(/硕士/.test(text)) return "硕士及以上";
+  if(/本科/.test(text)) return "本科及以上";
+  if(/大专|专科/.test(text)) return "大专及以上";
+  if(/不限学历|学历不限/.test(text)) return "学历不限";
+  if(/应届/.test(text)) return "应届毕业生";
+  return "";
+}
+function extractDeadline(text){
+  var m=text.match(/(\d{4})[-/年.](\d{1,2})[-/月.](\d{1,2})日?/);
+  if(m) return m[1]+"-"+("0"+m[2]).slice(-2)+"-"+("0"+m[3]).slice(-2);
+  m=text.match(/(\d{1,2})月(\d{1,2})日/);
+  if(m) return ("0"+m[1]).slice(-2)+"-"+("0"+m[2]).slice(-2);
+  return "";
+}
+function mapResult(r, cat){
+    const title=(r.title||r.p||"招聘信息").toString();
+    const text=title;
+    const SITE_COMPANY={"国家电网招聘":"国家电网","51job校招":"51job","应届生求职网":"应届生求职网"};
+    return {
+        c: SITE_COMPANY[cat]||cat,
+        p: title.slice(0,80),
+        l: extractLocation(text),
+        e: extractEdu(text),
+        w: "",
+        d: extractDeadline(text),
+        s: cat,
+        u: r.url||""
+    };
+}
+
+async function startCrawl(){
+    const keyInput=document.getElementById('apiKey');
+    const key=((keyInput.value||"").trim()||localStorage.getItem("xiaozhao_firecrawl_key")||"").toLowerCase();
+    if(!key){
+        toast("请先在上方填写你的 Firecrawl API Key");
+        keyInput.focus();
+        return;
+    }
+    localStorage.setItem("xiaozhao_firecrawl_key",key);
+
     var ov=document.getElementById('overlay');
     var lt=document.getElementById('overlayText');
     var pf=document.getElementById('pfill');
     ov.style.display='flex';
     lt.textContent='🔥 正在通过 Firecrawl 搜索最新校招职位...';
     pf.style.width='0%';
-    
-    setTimeout(function(){
-        var i=0;
-        function step(){
-            if(i>=SAMPLE_DATA.length){
-                D=SAMPLE_DATA.slice();F=SAMPLE_DATA.slice();render();ov.style.display='none';
-                toast('爬取完成！已获取 '+SAMPLE_DATA.length+' 条职位');
-                saveData();
-                return;
+
+    let all=[];
+    try{
+        for(let i=0;i<CRAWL_SITES.length;i++){
+            const s=CRAWL_SITES[i];
+            lt.textContent='正在抓取 ('+(i+1)+'/'+CRAWL_SITES.length+'): '+s.cat;
+            pf.style.width=((i+1)/CRAWL_SITES.length*100)+'%';
+            try{
+                const res=await firecrawlScrape(s.url,key);
+                res.forEach(r=>{ if(r&&r.url) all.push(mapResult(r,s.cat)); });
+            }catch(e){
+                if(/[Uu]nauthorized|Invalid/.test(e.message)){
+                    throw new Error("API Key 无效，请在上方输入框更新你的 Firecrawl Key");
+                }
+                console.warn("查询失败，已跳过:",q.q,e.message);
             }
-            lt.textContent='正在爬取: '+(i+1)+'/'+SAMPLE_DATA.length;
-            pf.style.width=((i+1)/SAMPLE_DATA.length*100)+'%';
-            i++;
-            setTimeout(step,150);
         }
-        step();
-    },500);
+    }catch(e){
+        ov.style.display='none';
+        toast(e.message);
+        return;
+    }
+
+    // 去重（按链接）
+    const seen={};
+    all=all.filter(x=>{ if(seen[x.u])return false; seen[x.u]=1; return true; });
+
+    if(all.length){
+        D=all;F=D.slice();render();saveData();
+        ov.style.display='none';
+        toast('爬取完成！获取 '+all.length+' 条真实招聘信息');
+    }else{
+        ov.style.display='none';
+        toast('未获取到数据，请检查 Key 或网络');
+    }
+}
+
+function loadSample(){
+    D=SAMPLE_DATA.slice();F=D.slice();render();saveData();
+    toast("已加载 "+SAMPLE_DATA.length+" 条演示数据（未联网）");
 }
 
 function saveData(){
     localStorage.setItem("xiaozhao_radar_data",JSON.stringify(D));
 }
-
-// 模拟数据（实际使用时应由 Firecrawl 爬取填充）
-var SAMPLE_DATA=[
-{c:"百度",p:"27届暑期-数据分析实习生",l:"北京/上海",e:"本科及以上",w:"250-300/天，免费三餐，租房补贴",d:"2026-06-30",s:"BOSS直聘",u:"https://www.zhipin.com"},
-{c:"小米",p:"多岗位实习生（2027届）",l:"北京/武汉",e:"本科及以上",w:"餐补，上市公司，转正机会大",d:"2026-06-30",s:"实习僧",u:"https://www.shixiseng.com"},
-{c:"腾讯",p:"暑期实习生（多岗位）",l:"深圳/北京/上海/广州/成都/杭州",e:"本科及以上",w:"免费三餐，健身房，年假30天，10000+岗位",d:"2026-06-30",s:"腾讯招聘",u:"https://join.qq.com"},
-{c:"阿里巴巴",p:"Java开发实习生",l:"杭州",e:"本科及以上",w:"股票期权，免费三餐，年度体检",d:"2026-06-20",s:"智联招聘",u:"https://www.zhaopin.com"},
-{c:"字节跳动",p:"后端开发实习生",l:"北京/上海",e:"本科及以上",w:"免费三餐，六险一金，健身补贴",d:"2026-07-01",s:"智联招聘",u:"https://www.zhaopin.com"},
-{c:"华为",p:"软件开发实习生",l:"深圳/东莞",e:"本科及以上",w:"股票分红，免费食堂，健身房",d:"2026-06-30",s:"智联招聘",u:"https://career.huawei.com"},
-{c:"美团",p:"外卖运营实习生",l:"北京",e:"本科及以上",w:"免费工作餐，交通补贴，团建",d:"2026-06-15",s:"智联招聘",u:"https://www.zhaopin.com"},
-{c:"京东",p:"供应链管培生（暑期）",l:"北京",e:"本科及以上",w:"五险一金，免费宿舍，年度旅游",d:"2026-06-20",s:"智联招聘",u:"https://www.zhaopin.com"},
-{c:"快手",p:"算法实习生（2027届提前批）",l:"北京",e:"硕士及以上",w:"400-500/天，免费三餐，租房补贴",d:"2026-06-30",s:"牛客网",u:"https://www.nowcoder.com"},
-{c:"拼多多",p:"产品实习生（暑期）",l:"上海",e:"本科及以上",w:"300-400/天，免费三餐，加班补贴",d:"2026-06-15",s:"牛客网",u:"https://www.nowcoder.com"},
-{c:"网易",p:"游戏开发实习生",l:"杭州",e:"本科及以上",w:"200-250/天，免费三餐，游戏福利",d:"2026-06-20",s:"牛客网",u:"https://www.nowcoder.com"},
-{c:"哔哩哔哩",p:"内容运营实习生",l:"上海",e:"本科及以上",w:"150-200/天，二次元福利，免费三餐",d:"2026-05-30",s:"牛客网",u:"https://www.nowcoder.com"},
-{c:"中国工商银行",p:"金融科技管培生（暑期）",l:"北京",e:"本科及以上",w:"六险二金，补充医疗，年度体检",d:"2026-07-15",s:"应届生求职网",u:"https://www.yingjiesheng.com"},
-{c:"中国移动",p:"5G技术研发实习生",l:"广州/北京",e:"硕士及以上",w:"六险二金，通讯免月租，年假",d:"2026-07-31",s:"中国移动招聘",u:"https://mp.weixin.qq.com/s/example"},
-{c:"国家电网",p:"电力系统工程师（暑期）",l:"上海",e:"本科及以上",w:"六险二金，高额年终奖，免费体检",d:"2026-06-15",s:"国家电网招聘",u:"https://mp.weixin.qq.com/s/example"},
-{c:"中国石化",p:"石油化工工程师",l:"北京/上海",e:"本科及以上",w:"六险二金，带薪年假，节日福利",d:"2026-07-15",s:"中国石化招聘",u:"https://mp.weixin.qq.com/s/example"},
-{c:"中国烟草",p:"烟草育种工程师",l:"多地",e:"本科及以上",w:"六险二金，高福利，稳定发展",d:"2026-08-31",s:"中国烟草招聘",u:"https://mp.weixin.qq.com/s/example"},
-{c:"中国银行",p:"总行部门实习生（信科）",l:"北京",e:"2027届硕士及以上",w:"总行实习，500+岗位，金融科技方向",d:"2026-06-30",s:"四大行招聘",u:"https://mp.weixin.qq.com/s/example"},
-{c:"中信证券",p:"总部暑期日常实习（投行/资管/股衍等）",l:"北京/上海/深圳",e:"硕士及以上",w:"顶尖券商，102人，专业不限",d:"2026-05-28",s:"国聘网",u:"https://careers.citics.com"},
-{c:"中⼤⾏",p:"暑期实习（金融科技/债券/基金等）",l:"北京/上海/深圳/广州/成都/南京/杭州",e:"硕士及以上",w:"大模型/数据/算法方向，金融科技",d:"2026-06-15",s:"国聘网",u:"https://csc108.zhiye.com"},
-{c:"盒马鲜⽣",p:"超市暑期实习生",l:"北京",e:"大专及以上",w:"180-200/天，可转正，生日会",d:"2026-05-25",s:"实习僧",u:"https://www.shixiseng.com"},
-{c:"众安保险",p:"实习生（2027届）",l:"上海",e:"本科及以上",w:"有转正机会，⼤牛带教，免费下午茶",d:"2026-06-15",s:"实习僧",u:"https://www.shixiseng.com"},
-{c:"DHL",p:"实习生（2027届）",l:"多地",e:"本科及以上",w:"500强，⼀对⼀导师，节日福利",d:"2026-06-30",s:"实习僧",u:"https://www.shixiseng.com"}
-];
 
 function addRow(){
     D.unshift({c:"",p:"",l:"",e:"本科及以上",w:"",d:"",s:"",u:""});F=D.slice();render();saveData();
@@ -199,10 +294,16 @@ function clearAll(){
     if(!D.length)return;if(confirm("确定清空？")){D=[];F=[];render();saveData();toast("已清空");}
 }
 
+function esc(s){
+    return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+}
+
 function editCell(cell,idx,f){
     var inp=document.createElement("input");
     inp.type="text";inp.value=cell.textContent||"";
     inp.style.cssText="width:100%;border:none;outline:none;background:#fff8e1;font-size:13px";
+    if(cell.classList) cell.classList.remove("t-title");
+    cell.style.whiteSpace="normal";cell.style.overflow="visible";cell.style.textOverflow="clip";
     cell.textContent="";cell.appendChild(inp);inp.focus();inp.select();
     function save(){D[idx][f]=inp.value;cell.textContent=inp.value||"";saveData();}
     inp.onblur=save;
@@ -223,15 +324,15 @@ function render(){
         var cls=sc[item.s]||"tag-g";
         h+='<tr>';
         h+='<td style="color:#9ca3b6;font-size:12px">'+(i+1)+'</td>';
-        h+='<td><span class="cname" ondblclick="editCell(this,'+i+',"c")">'+(item.c||"-")+'</span></td>';
-        h+='<td><span ondblclick="editCell(this,'+i+',"p")">'+(item.p||"-")+'</span></td>';
-        h+='<td><span ondblclick="editCell(this,'+i+',"l")">'+(item.l||"-")+'</span></td>';
-        h+='<td><span class="edu-b" ondblclick="editCell(this,'+i+',"e")">'+(item.e||"-")+'</span></td>';
-        h+='<td><span ondblclick="editCell(this,'+i+',"w")">'+(item.w||"-")+'</span></td>';
-        h+='<td><span ondblclick="editCell(this,'+i+',"d")">'+(item.d||"-")+'</span></td>';
-        h+='<td><span class="'+cls+'">'+(item.s||"-")+'</span></td>';
+        h+='<td><span class="cname" ondblclick="editCell(this,'+i+',\"c\")">'+(item.c||"-")+'</span></td>';
+        h+='<td><span class="t-title" title="'+esc(item.p)+'" ondblclick="editCell(this,'+i+',\"p\")">'+(item.p||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+i+',\"l\")">'+(item.l||"-")+'</span></td>';
+        h+='<td><span class="edu-b" ondblclick="editCell(this,'+i+',\"e\")">'+(item.e||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+i+',\"w\")">'+(item.w||"-")+'</span></td>';
+        h+='<td><span ondblclick="editCell(this,'+i+',\"d\")">'+(item.d||"-")+'</span></td>';
         h+='<td>'+(item.u?'<a class="link-btn" href="'+item.u+'" target="_blank">访问</a>':'-')+'</td>';
-        h+='<td><button class="del-btn" onclick="delRow('+i+')">x</button></td>';
+        h+='<td><span class="'+cls+'">'+(item.s||"-")+'</span></td>';
+        h+='<td><button class="del-btn" onclick="delRow('+i+')">×</button></td>';
         h+='</tr>';
     });
     tb.innerHTML=h;
@@ -258,16 +359,83 @@ function sortData(f){
 
 function exportExcel(){
     if(!F.length){toast("没有数据");return;}
-    var h=["序号","公司","职位","地点","学历","福利","截止日期","来源","链接"];
-    var rows=[];F.forEach(function(item,i){rows.push([i+1,item.c,item.p,item.l,item.e,item.w,item.d,item.s,item.u]);});
+    var h=["序号","公司","职位","地点","学历","福利","截止日期","链接","来源"];
+    var rows=[];F.forEach(function(item,i){rows.push([i+1,item.c,item.p,item.l,item.e,item.w,item.d,item.u,item.s]);});
     var csv=h.join(",")+"\n";rows.forEach(function(r){csv+=r.join(",")+"\n";});
     var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download="xiaozhao-radar-data.csv";a.click();
     toast("已导出CSV");
 }
 
+// 📤 导入：支持 OpenCLI（opencli xiaozhao search -f json）或其他工具导出的 JSON/CSV
+function handleImport(input){
+    var file=input.files[0];
+    if(!file){return;}
+    var reader=new FileReader();
+    reader.onload=function(e){
+        try{
+            var text=e.target.result;
+            var rows;
+            if(/\.json$/i.test(file.name)){
+                rows=JSON.parse(text);
+                if(!Array.isArray(rows)){
+                    if(Array.isArray(rows.data)) rows=rows.data;
+                    else if(Array.isArray(rows.items)) rows=rows.items;
+                    else if(Array.isArray(rows.results)) rows=rows.results;
+                    else rows=[rows];
+                }
+            }else{
+                rows=parseCSV(text);
+            }
+            rows=rows.map(function(r){
+                var loc=[r.city,r.district].filter(Boolean).join("/")||r.l||r.location||r.地点||"";
+                var welfare=[(r.salary||r.salaryMin?(r.salary||r.salaryMin):""),r.tags,r.welfare,r.summary].filter(Boolean).join(" ")||r.w||r.福利||"";
+                return {
+                    c: r.c||r.company||r.companyFull||r.公司||"",
+                    p: r.p||r.position||r.title||r.职位||"",
+                    l: loc,
+                    e: r.e||r.edu||r.education||r.degree||r.学历||"",
+                    w: welfare,
+                    d: r.d||r.deadline||r.issueDate||r.截止||"",
+                    s: r.s||r.source||r.来源||"OpenCLI导入",
+                    u: r.u||r.url||r.companyUrl||r.link||r.链接||""
+                };
+            }).filter(function(r){return r.c||r.p;});
+            if(!rows.length){toast("没有解析到有效记录");input.value="";return;}
+            D=rows;F=D.slice();render();saveData();
+            toast("已导入 "+rows.length+" 条记录");
+        }catch(err){
+            toast("导入失败："+err.message);
+        }
+        input.value="";
+    };
+    reader.readAsText(file,"utf-8");
+}
+
+// 简易 CSV 解析（兼容引号包裹的字段）
+function parseCSV(text){
+    var lines=text.replace(/\r/g,"").split("\n").filter(function(l){return l.trim()!=="";});
+    if(!lines.length)return [];
+    var headers=splitCSVLine(lines[0]);
+    return lines.slice(1).map(function(line){
+        var cols=splitCSVLine(line);
+        var o={};headers.forEach(function(h,i){o[h.trim()]=cols[i]!==undefined?cols[i].trim():"";});
+        return o;
+    });
+}
+function splitCSVLine(line){
+    var out=[],cur="",q=false;
+    for(var i=0;i<line.length;i++){
+        var ch=line[i];
+        if(ch==='"'){q=!q;continue;}
+        if(ch===","&&!q){out.push(cur);cur="";continue;}
+        cur+=ch;
+    }
+    out.push(cur);return out;
+}
+
 function toast(msg){
     var t=document.getElementById("toast");t.textContent=msg;
-    t.classList.add("show");setTimeout(function(){t.classList.remove("show");},3000);
+    t.classList.add("show");setTimeout(function(){t.classList.remove("show");},3500);
 }
 
 init();
