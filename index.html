@@ -52,6 +52,24 @@ tbody td{padding:11px 16px;vertical-align:middle;color:#374151}
 .btn-d{background:#334155;color:#fff}.btn-d:hover{background:#1e293b}
 .hint{font-size:12px;color:#94a3b8;padding:10px 24px 4px;background:#eef1f6;line-height:1.6}
 code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-size:11px}
+.modal{position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(15,23,42,.55);z-index:1100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal.show{display:flex}
+.modal-box{background:#fff;border-radius:16px;max-width:780px;width:100%;max-height:88vh;overflow:auto;box-shadow:0 20px 60px rgba(0,0,0,.3);padding:26px 28px;position:relative}
+.modal-box h2{font-size:19px;color:#1f2937;margin-bottom:6px}
+.modal-box .sub{color:#94a3b8;font-size:13px;margin-bottom:16px}
+.tier{display:flex;gap:14px;margin-bottom:14px;flex-wrap:wrap}
+.tier-card{flex:1;min-width:220px;border:1px solid #eceef3;border-radius:12px;padding:13px 15px;background:#fafbff}
+.tier-card.pri{border-color:#c7d2fe;background:#eef2ff}
+.tier-card.b2{border-color:#bae6fd;background:#f0f9ff}
+.tier-card.b3{border-color:#fde68a;background:#fffbeb}
+.tier-card h3{font-size:14px;margin-bottom:7px}
+.tier-card p{font-size:12px;color:#475569;line-height:1.7;margin:0}
+.tier-card code{font-size:11px}
+.cmd{background:#0f172a;color:#e2e8f0;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:12px;padding:12px 14px;border-radius:10px;white-space:pre-wrap;line-height:1.7;margin:6px 0 2px;position:relative}
+.copy-btn{position:absolute;top:8px;right:8px;background:#334155;color:#fff;border:0;border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer}
+.copy-btn:hover{background:#475569}
+.close-x{position:absolute;top:14px;right:18px;background:0 0;border:0;font-size:22px;color:#cbd2dc;cursor:pointer;line-height:1}
+.close-x:hover{color:#64748b}
 </style>
 </head>
 <body>
@@ -62,9 +80,10 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 <div class="pbar"><div class="pfill" id="pfill"></div></div>
 </div>
 <div class="top-bar">
-<h1>📊 Xiaozhao Radar - 校招雷达 <span style="font-size:12px;background:rgba(255,255,255,.25);padding:3px 10px;border-radius:999px;font-weight:600;vertical-align:middle">v2.0</span></h1>
+<h1>📊 Xiaozhao Radar - 校招雷达 <span style="font-size:12px;background:rgba(255,255,255,.25);padding:3px 10px;border-radius:999px;font-weight:600;vertical-align:middle">v2.0.2</span></h1>
 <div>
-<button class="btn btn-p" onclick="startCrawl()">🕷 一键爬虫(Firecrawl)</button>
+<button class="btn btn-p" onclick="startCrawl()">🕷 一键爬虫(Firecrawl主选)</button>
+<button class="btn btn-o" style="background:#0ea5e9;color:#fff" onclick="showToolHelp()">🛡 备用工具(BrowserAct/OpenCLI)</button>
 <button class="btn btn-g" onclick="addRow()">➕ 添加</button>
 <button class="btn btn-o" onclick="exportExcel()">📥 导出</button>
 <input type="file" id="importFile" accept=".json,.csv" style="display:none" onchange="handleImport(this)">
@@ -87,7 +106,7 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('deadline')">按截止</button>
 <span class="stats" id="stats">共 0 条记录</span>
 </div>
-<div class="hint">🔥 一键爬虫会真实抓取<b>腾讯/阿里巴巴/美团/字节跳动/华为/国家电网/中国石化</b>等100家央企互联网大厂官方招聘页（Firecrawl scrape 模式），3家综合招聘网站（51job/应届生/国聘）排最后。先加载20个站立即展示，后台继续加载剩余。API Key 仅存本地浏览器，不上传。</div>
+<div class="hint">🔥 一键爬虫(Firecrawl)<b>主选</b>会真实抓取<b>腾讯/阿里巴巴/美团/字节跳动/华为/国家电网/中国石化</b>等100家央企互联网大厂官方招聘页，3家综合招聘网站（51job/应届生/国聘）排最后。先加载20个站立即展示，后台继续加载剩余。两层本地 CLI 备用：<b>② BrowserAct</b>（专破反爬/验证码）｜<b>③ OpenCLI</b>（覆盖51job全量）。点「🛡 备用工具」看配置与命令。API Key 仅存本地浏览器。</div>
 <div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p>填写上方 Firecrawl API Key 后点击「🕷 一键爬虫」获取真实职位<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p></div>
 <table id="dataTable" style="display:none">
 <thead><tr><th style="width:44px">#</th><th>公司</th><th>职位 / 标题</th><th>地点</th><th>学历</th><th>福利 / 摘要</th><th>截止日期</th><th>链接</th><th>来源</th><th style="width:44px"></th></tr></thead>
@@ -102,6 +121,37 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 <option value="50">50条/页</option>
 <option value="100">100条/页</option>
 </select>
+</div>
+<div class="modal" id="toolModal" onclick="if(event.target===this)closeToolHelp()">
+<div class="modal-box">
+<button class="close-x" onclick="closeToolHelp()">×</button>
+<h2>🛠 校招雷达 · 三层爬虫工具策略</h2>
+<div class="sub">主选浏览器直连，两路本地 CLI 备用，覆盖反爬 / 验证码 / 全量库</div>
+<div class="tier">
+  <div class="tier-card pri"><h3>① 主选 · Firecrawl</h3><p>云端 REST API，<b>浏览器直连</b>，无需本地环境。适合 100 家公开官方招聘页批量抓取。免登录、自动处理反爬。</p></div>
+  <div class="tier-card b2"><h3>② 备用 · BrowserAct</h3><p>本地 CLI <code>browser-act</code>，<b>stealth-extract</b> 零配置突破反爬、<b>solve-captcha</b> 自动解验证码。适合被拦截的站点，免费(登录)。</p></div>
+  <div class="tier-card b3"><h3>③ 备用 · OpenCLI</h3><p>本地 CLI <code>opencli</code> + Chrome「Browser Bridge」插件，复用浏览器登录态，覆盖 51job 等需登录的全量岗位库。</p></div>
+</div>
+<div style="font-size:13px;color:#334155;line-height:1.8"><b>用法：</b>主选直接点「🕷 一键爬虫」即可联网抓取；两个备用工具需在<b>本机终端</b>跑 CLI 抓数据，导出 JSON 后点「📤 导入」即可进入雷达统一管理。</div>
+<p style="font-size:13px;font-weight:600;margin:16px 0 2px;color:#0f172a">备用② BrowserAct（本地 CLI）</p>
+<div class="cmd" id="cmdBA"># 1. 安装 CLI（详见 https://github.com/browser-act/skills）
+npm install -g browser-act
+# 2. 登录（免费层需登录账号）
+browser-act login
+# 3. 零配置抓取受保护的招聘页
+browser-act stealth-extract "https://join.qq.com/" --out ba_result.json
+# 4. 回到雷达页点「📤 导入」选择 ba_result.json<button class="copy-btn" onclick="copyCmd('cmdBA')">复制</button></div>
+<p style="font-size:13px;font-weight:600;margin:14px 0 2px;color:#0f172a">备用③ OpenCLI（本地 CLI + Chrome 插件）</p>
+<div class="cmd" id="cmdOC"># 1. 安装
+npm install -g @jackwener/opencli
+# 2. 安装 Chrome「Browser Bridge」插件并完成登录
+# 3. 抓取校招 / 小红书 / 微博招聘
+opencli xiaozhao search
+opencli xiaohongshu search 校招
+opencli weibo search 招聘
+# 4. 导出 JSON 后在雷达页点「📤 导入」<button class="copy-btn" onclick="copyCmd('cmdOC')">复制</button></div>
+<p style="font-size:12px;color:#94a3b8;margin-top:14px;line-height:1.6">说明：BrowserAct / OpenCLI 均为本地命令行工具，无法在纯前端网页内直接调用，故作为「备用」，通过「CLI 抓取 → 导出 → 导入」与雷达衔接。主选 Firecrawl 才是网页内一键直连的方案。</p>
+</div>
 </div>
 <script>
 let D=[],F=[],currentPage=1,pageSize=20;
@@ -574,6 +624,21 @@ function splitCSVLine(line){
 function toast(msg){
     var t=document.getElementById("toast");t.textContent=msg;
     t.classList.add("show");setTimeout(function(){t.classList.remove("show");},3500);
+}
+
+function showToolHelp(){document.getElementById('toolModal').classList.add('show');}
+function closeToolHelp(){document.getElementById('toolModal').classList.remove('show');}
+function copyCmd(id){
+  var el=document.getElementById(id);
+  var clone=el.cloneNode(true);
+  var b=clone.querySelector('.copy-btn');
+  if(b)b.remove();
+  var text=(clone.innerText||"").trim();
+  if(navigator.clipboard&&navigator.clipboard.writeText){
+    navigator.clipboard.writeText(text).then(function(){toast('命令已复制到剪贴板');},function(){toast('复制失败，请手动选择');});
+  }else{
+    toast('请手动选择命令文本复制');
+  }
 }
 
 init();
