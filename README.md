@@ -2,8 +2,15 @@
 
 > **🔍 AI驱动的校招信息聚合平台 —— 100家央企&互联网大厂校招公告实时抓取，分批加载+分页浏览。**
 
-[![Version](https://img.shields.io/badge/version-2.0.1-blue)]()
+[![Version](https://img.shields.io/badge/version-2.0.2-blue)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)]()
+
+## 🎬 v2.0.2 核心亮点
+
+- **三层爬虫工具策略**：主选 **Firecrawl**（浏览器直连，一键抓取 100 家公开官网）+ 备用② **BrowserAct**（本地 CLI，专破反爬/验证码）+ 备用③ **OpenCLI**（本地 CLI + Chrome 插件，覆盖 51job 全量）
+- **「🛡 备用工具」说明面板**：页面内置三层工具对比、安装与命令，一键复制，CLI 抓完 JSON 直接导入雷达
+- **100家招聘官网**：50家互联网大厂 + 50家央企国企 + 3家综合招聘网站（排最后），分类筛选不变
+- **分批加载 + 分页浏览**：前20站秒出，后台续拉；20/50/100 条/页自由切换
 
 ## 🎬 v2.0.1 核心亮点
 
@@ -23,19 +30,38 @@
 3. 在 `Firecrawl API Key` 框填 Key → 点 **🕷 一键爬虫**
 4. 前20个站爬完立即出数据，后台继续加载剩余站点
 
-### 方式二：OpenCLI xiaozhao 适配器（完整职位库，需登录态）
+### 方式二：BrowserAct 本地 CLI（备用②，专破反爬/验证码）
+
+```bash
+# 安装 CLI（详见 https://github.com/browser-act/skills）
+npm install -g browser-act
+
+# 登录（免费层需登录账号）
+browser-act login
+
+# 零配置抓取受保护的招聘页
+browser-act stealth-extract "https://join.qq.com/" --out ba_result.json
+
+# 回到雷达页点「📤 导入」选择 ba_result.json
+```
+
+适合被 Firecrawl 拦截、带验证码的站点；`stealth-extract` 免费(登录)即可用。
+
+### 方式三：OpenCLI xiaozhao 适配器（备用③，完整职位库，需登录态）
 
 ```bash
 # 安装 OpenCLI
 npm install -g @jackwener/opencli
 
-# 爬校招数据（复用 Chrome 登录态）
+# 爬校招数据（复用 Chrome 登录态 + Browser Bridge 插件）
 opencli xiaozhao search "2027 校招" -f json > xiaozhao.json
 
 # 校招雷达点「📤 导入」选 xiaozhao.json
 ```
 
-可选参数：`--city 成都` `--degree 本科` `--limit 30`
+可选参数：`--city 成都` `--degree 本科` `--limit 30`；另有 `opencli xiaohongshu search 校招`、`opencli weibo search 招聘` 适配器。
+
+> **工具选择建议**：公开官网批量抓 → 主选 Firecrawl 一键搞定；站点反爬强/有验证码 → 备用② BrowserAct；需登录态的全量库（如 51job）→ 备用③ OpenCLI。
 
 ## 🎯 数据源（103条）
 
@@ -75,6 +101,12 @@ A: 导入函数已兼容多种字段命名（title/position、company、city/dis
 Apache 2.0 License
 
 ## 📋 更新日志
+
+### v2.0.2
+- 新增**三层爬虫工具策略**：主选 Firecrawl（浏览器直连）+ 备用② BrowserAct（本地 CLI，破反爬/解验证码）+ 备用③ OpenCLI（本地 CLI + Chrome 插件，全量库）
+- 顶栏新增「🛡 备用工具(BrowserAct/OpenCLI)」按钮，弹窗展示三层工具对比、安装与命令、一键复制
+- 版本号徽章更新至 v2.0.2
+- README 补充 BrowserAct / OpenCLI 两种本地 CLI 用法与工具选择建议
 
 ### v2.0.1
 - CRAWL_SITES 扩展至 103 条：50家互联网大厂 + 50家央企国企 + 3家综合招聘网站（排最后）
