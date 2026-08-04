@@ -1073,6 +1073,16 @@ function init(){
     var ak=localStorage.getItem("xiaozhao_anysearch_key");
     if(ak){document.getElementById('anysearchKey').value=ak;}
     F=D.slice();render();
+    // ★ 交付体验：本地数据极少时（首次打开/被清空），自动后台拉腾讯文档填表
+    // 触发条件：D < 10 条才自动加载；已有 10+ 条则尊重本地数据，不打扰
+    if(D.length < 10){
+        setTimeout(function(){
+            toast('📥 首次加载：自动从腾讯文档拉取校招数据（需先双击 proxy.js 启动本地代理）...');
+            tdFallback().then(function(ok){
+                if(ok) toast('✅ 已自动加载 ' + D.length + ' 条腾讯文档校招数据');
+            });
+        }, 600);
+    }
 }
 
 const NAV_WORDS=["首页","单位一览","应聘指南","帮助中心","更多","我的","登录","注册","个人中心","意见反馈","修改密码","注销","预约","报送","学籍","成绩","上传","获得帮助","技术支持","版权","关于我们","联系我们","站点地图","RSS"];
@@ -1528,10 +1538,10 @@ async function startCrawl(){
     ov.style.display='none';
     showData();
     if(cp)cp.style.display='none';
-    if(D.length){toast('🎉 全部加载完成！共 '+D.length+' 条招聘信息');}
+    if(D.length>=10){toast('🎉 全部加载完成！共 '+D.length+' 条招聘信息');}
     else{
-        toast('⚠️ Firecrawl/AnySearch 均未获取到数据，尝试腾讯文档兜底...');
-        // 最终兜底：腾讯文档智能表格（实时更新的 27届实习提前批信息）
+        // ★ 放宽兜底：少于 10 条视为"几乎全失败"，自动拉腾讯文档
+        toast('⚠️ Firecrawl/AnySearch 仅获取到 '+D.length+' 条，尝试腾讯文档兜底...');
         if(cp){cp.style.display='block';}
         if(cpText){cpText.textContent='正在加载腾讯文档校招数据（27届实习提前批信息汇总）...';}
         var okTd = await tdFallback();
