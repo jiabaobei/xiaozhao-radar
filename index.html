@@ -1528,10 +1528,12 @@ async function startCrawl(){
             || (it.w||"").toLowerCase().indexOf(k)>=0;
     }
 
+    // ★ 不再全屏遮罩：已有数据（快照）保持可见，抓取用顶部细进度条提示
+    // 用户看到的是"已有数据 + 新增数据"持续增长，而不是黑屏等待
     var ov=document.getElementById('overlay');
     var lt=document.getElementById('overlayText');
     var pf=document.getElementById('pfill');
-    ov.style.display='flex';
+    ov.style.display='none'; // 关键：不遮罩
     pf.style.width='0%';
 
     // 空状态下显示进度条
@@ -1539,10 +1541,14 @@ async function startCrawl(){
     var cpText=document.getElementById('cpText');
     if(cp)cp.style.display='block';
     function updateCp(extra){
-        if(cpText)cpText.textContent='已抓 '+doneCount+'/'+total+' 站，已获取 '+all.length+' 条｜'+extra;
+        if(cpText)cpText.textContent='正在抓取 '+doneCount+'/'+total+' 站，已获取 '+all.length+' 条｜'+extra;
     }
 
+    // ★ 保留当前已有数据（内置快照/之前加载的），爬虫抓到的新数据合并进来，持续增长
     let all=[];
+    if(D && D.length){
+        D.forEach(function(x){ all.push(x); });
+    }
     var doneCount=0;
     var indLabel=indSel||'全部行业';
 
@@ -1607,43 +1613,36 @@ async function startCrawl(){
         return "OK";
     }
 
-    // 第一批：前20个站并发抓，每5站立即刷新一次（用户最快几秒看到数据）
+    // 第一批：前20个站并发抓，每5站立即刷新一次（用户最快几秒看到数据增长）
     lt.textContent='正在并发抓取前 '+FIRST_BATCH+' 个招聘网站（'+indLabel+'）...';
     var firstStatus=await crawlRange(0, FIRST_BATCH, '首批 '+FIRST_BATCH+' 站并发中...');
     if(firstStatus==="BADKEY") return;
     if(rateLimited){
-        ov.style.display='none';
-        toast('⚠️ Firecrawl 免费额度已用完，直接加载校招信息聚合平台数据...');
+        toast('⚠️ Firecrawl 免费额度已用完，自动加载校招信息聚合平台数据...');
         showData();
-        if(cp){cp.style.display='block';}
-        if(cpText){cpText.textContent='正在加载校招信息聚合平台数据（27届实习提前批信息汇总）...';}
         var okTd = await tdFallback();
         if(cp)cp.style.display='none';
+        filterData();
         return;
     }
     showData();
-    ov.style.display='none';
-    toast('✅ 前 '+FIRST_BATCH+' 站已加载（'+D.length+' 条），后台继续并发加载剩余 '+(total-FIRST_BATCH)+' 站');
+    toast('✅ 已抓 '+FIRST_BATCH+' 站，数据累计 '+D.length+' 条，后台继续并发加载...');
 
     // 后台加载剩余站点：并发5个，不遮挡页面，每10站刷新表格
     var bgStatus=await crawlRange(FIRST_BATCH, total, '后台并发加载中...');
     if(bgStatus==="BADKEY") return;
     if(rateLimited){
-        ov.style.display='none';
         showData();
         toast('⚠️ Firecrawl 免费额度已用完，自动加载校招信息聚合平台补足...');
-        if(cp){cp.style.display='block';}
-        if(cpText){cpText.textContent='正在加载校招信息聚合平台数据（27届实习提前批信息汇总）...';}
         var okTd2 = await tdFallback();
         if(cp)cp.style.display='none';
+        filterData();
         return;
     }
 
-    ov.style.display='none';
     showData();
     if(cp)cp.style.display='none';
     // ★ 兜底判断：按"当前筛选条件下的有效结果"算，不是抓到的总数
-    // 用户填"成都"时 Firecrawl 抓到全国 20+ 条但成都只剩 6 条 → 也要兜底
     filterData(); // 应用当前筛选（搜索词/行业/学历），得到筛选后的 F
     if(F.length>=20){toast('🎉 全部加载完成！筛选后共 '+F.length+' 条招聘信息');}
     else{
