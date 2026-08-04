@@ -1159,12 +1159,22 @@ function _activeProxies(){
     return live.length?live:list;
 }
 async function anysearchExtract(siteUrl){
+    // ★ 先探测本地代理是否在线：不在线时提示用户启动 proxy.js（公共代理今天全挂，本地代理是稳定通道）
+    const proxies = _activeProxies();
+    if(!window.__proxyChecked){
+        window.__proxyChecked=true;
+        try{
+            const probe=await fetch("http://localhost:8787/https://example.com/",{method:"GET",mode:"cors"});
+            if(!probe.ok) throw new Error("probe failed");
+        }catch(e){
+            toast("🛠 AnySearch 备用需要本地代理：请先双击 proxy.js 启动后再点爬虫（其他公共代理不稳定）");
+        }
+    }
     const target = "https://api.anysearch.com/mcp";
     const headers = {"Content-Type":"application/json","X-Anysearch-Client":"skill/3.0.1"};
     const ak = anysearchKey();
     if(ak) headers["Authorization"] = "Bearer "+ak;
     const body = JSON.stringify({jsonrpc:"2.0",id:1,method:"tools/call",params:{name:"extract",arguments:{url:siteUrl}}});
-    const proxies = _activeProxies();
     let lastErr=null;
     for(let pi=0;pi<proxies.length;pi++){
         const px=proxies[pi];
@@ -1576,14 +1586,18 @@ async function startCrawl(){
     ov.style.display='none';
     showData();
     if(cp)cp.style.display='none';
-    if(D.length>=20){toast('🎉 全部加载完成！共 '+D.length+' 条招聘信息');}
+    // ★ 兜底判断：按"当前筛选条件下的有效结果"算，不是抓到的总数
+    // 用户填"成都"时 Firecrawl 抓到全国 20+ 条但成都只剩 6 条 → 也要兜底
+    filterData(); // 应用当前筛选（搜索词/行业/学历），得到筛选后的 F
+    if(F.length>=20){toast('🎉 全部加载完成！筛选后共 '+F.length+' 条招聘信息');}
     else{
-        // ★ 兜底：Firecrawl 抓取结果不足 20 条时，自动加载腾讯文档（校招信息聚合平台）补足
-        toast('⚠️ Firecrawl/AnySearch 仅获取到 '+D.length+' 条（不足 20 条），自动加载校招信息聚合平台补足...');
+        // ★ 兜底：当前筛选条件下结果不足 20 条时，自动加载腾讯文档（校招信息聚合平台）补足
+        toast('⚠️ 筛选后仅 '+F.length+' 条（不足 20 条），自动加载校招信息聚合平台补足...');
         if(cp){cp.style.display='block';}
         if(cpText){cpText.textContent='正在加载校招信息聚合平台数据（27届实习提前批信息汇总）...';}
         var okTd = await tdFallback();
         if(cp)cp.style.display='none';
+        if(okTd) filterData(); // 兜底后再次应用筛选
     }
 }
 
