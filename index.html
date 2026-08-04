@@ -127,7 +127,7 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 <span class="stats" id="stats">共 0 条记录</span>
 </div>
 <div class="hint">📌 <b>使用步骤（必看）</b>：① 先在「行业」下拉选好目标行业（固定 15 类）→ ② 可选：在搜索框填地点/关键词，如「北京」→ ③ 点「🕷 一键爬虫」精准定向抓取。填了关键词则抓取结果<b>只保留匹配项</b>（如填北京只显示北京岗位），留空则抓该行业全部。🔥 一键爬虫(Firecrawl)<b>主选</b>会真实抓取<b>腾讯/阿里巴巴/美团/字节跳动/华为/国家电网/中国石化</b>等126家企业官网招聘页 + <b>16 个企业官方公众号校招推文</b>（已逐一校验发布者为官方招聘号，mp.weixin.qq.com 公开可抓）+ <b>714 家新增公开校招节点</b>（来自公开校招信息聚合，已清洗无效链接），3家综合招聘网站（51job/应届生/国聘）排最后。先加载20个站立即展示，后台继续加载剩余。<b>① AnySearch 第一备用</b>（云端免费·匿名可用·经CORS代理）｜两层本地 CLI 备用：<b>② BrowserAct</b>（专破反爬/验证码）｜<b>③ OpenCLI</b>（覆盖51job全量）。点「🛡 备用工具」看配置与命令。已<b>内置默认 Firecrawl Key</b>，普通学生无需注册直接可用；API Key 仅存本地浏览器。</div>
-<div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p>已内置默认 Firecrawl Key。<b>使用步骤</b>：① 先选「行业」（如银行金融）→ ② 可选：搜索框填「北京」等地点/关键词 → ③ 点「🕷 一键爬虫」定向抓取（也可填自己的 Key 覆盖）<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p></div>
+<div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p id="emptyHint">已内置默认 Firecrawl Key。<b>使用步骤</b>：① 先选「行业」（如银行金融）→ ② 可选：搜索框填「北京」等地点/关键词 → ③ 点「🕷 一键爬虫」定向抓取（也可填自己的 Key 覆盖）<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p><div id="crawlProgress" style="display:none;margin-top:16px;padding:12px;background:#f0f4ff;border-radius:8px;color:#4338ca;font-size:13px"><b>⏳ 正在爬取中...</b><span id="cpText"></span></div></div>
 <table id="dataTable" style="display:none">
 <thead><tr><th style="width:44px">#</th><th>公司</th><th>职位 / 标题</th><th>地点</th><th>学历</th><th>福利 / 摘要</th><th>截止日期</th><th>链接</th><th>来源</th><th style="width:44px"></th></tr></thead>
 <tbody id="tbody"></tbody>
@@ -1076,11 +1076,11 @@ function init(){
 }
 
 const NAV_WORDS=["首页","单位一览","应聘指南","帮助中心","更多","我的","登录","注册","个人中心","意见反馈","修改密码","注销","预约","报送","学籍","成绩","上传","获得帮助","技术支持","版权","关于我们","联系我们","站点地图","RSS"];
-const JOB_WORDS=["招聘","校招","应届","毕业生","实习","管培","招录","选拔","宣讲","录用"];
+const JOB_WORDS=["招聘","校招","应届","毕业生","实习","管培","招录","选拔","宣讲","录用","职位","岗位","社招","热招","board","hot","opening","career","job","join","team","热聘"];
 // 问答/攻略/介绍类内容过滤：防止把"xxx招聘流程是什么？"这类垃圾当职位
 const QA_WORDS=["问答","FAQ","常见问题","招聘流程","面试经验","笔试","攻略","心得","是什么","怎么样","怎么办","薪资待遇","福利待遇","员工福利","企业文化","公司介绍","加入我们","校招日历"];
 function extractJobsFromMarkdown(md, siteUrl){
-    const links=md.match(/\[[^\]!][^\]]*\]\([^)]+\)/g)||[];
+    const links=md.match(/\[[^\]]+\]\([^)]+\)/g)||[];
     const out=[]; const seen={};
     let baseHost="";
     try{ baseHost=new URL(siteUrl).hostname; }catch(e){}
@@ -1089,47 +1089,95 @@ function extractJobsFromMarkdown(md, siteUrl){
         if(!m) return;
         const text=m[1].trim();
         const url=m[2].trim();
-        if(!text || text.length<6 || text.length>60) return;
-        if(!JOB_WORDS.some(function(w){return text.indexOf(w)>=0;})) return;
+        if(!text || text.length<4 || text.length>80) return;
+        if(!JOB_WORDS.some(function(w){return text.toLowerCase().indexOf(w.toLowerCase())>=0;})) return;
         if(NAV_WORDS.some(function(w){return text.indexOf(w)>=0;})) return;
         if(QA_WORDS.some(function(w){return text.indexOf(w)>=0;})) return;
         if(!/^https?:\/\//.test(url)) return;
         try{
             const u=new URL(url);
-            const ok=(baseHost && u.hostname===baseHost) || /51job|yingjiesheng|zhaopin|sgcc|guopin|job\.com|campus|hr\.|talent|career|join|recruit|hotjob/.test(u.hostname);
+            // 放宽：baseHost 同站（任意子域名），或 host 命中招聘常见关键词
+            const host=u.hostname.toLowerCase();
+            const sameSite=baseHost && (host===baseHost || host.endsWith('.'+baseHost));
+            const hostOk=/51job|yingjiesheng|zhaopin|sgcc|guopin|job\.|career|recruit|hotjob|campus\.|talent|hr\.|mokahr|zhiye|positions|app\.|lagou|nowcoder/i.test(host);
+            const ok=sameSite || hostOk;
             if(!ok) return;
         }catch(e){ return; }
         if(seen[url]) return; seen[url]=1;
         out.push({title:text, url:url});
     });
+    // 兜底：无链接时从纯文本行中提取职位标题（很多公司招聘页是 JS 渲染，Firecrawl 抓回来只有纯文本）
+    if(!out.length){
+        const lines=md.split('\n').map(function(l){return l.trim();}).filter(function(l){return l.length>=6 && l.length<=80;});
+        lines.forEach(function(line){
+            if(!JOB_WORDS.some(function(w){return line.indexOf(w)>=0;})) return;
+            if(NAV_WORDS.some(function(w){return line.indexOf(w)>=0;})) return;
+            if(QA_WORDS.some(function(w){return line.indexOf(w)>=0;})) return;
+            // 过滤明显不是职位的：行内含 URL、含长数字、含特殊符号
+            if(/https?:\/\/|[:：]\s*邮箱|\d{6,}/.test(line)) return;
+            if(seen[line]) return; seen[line]=1;
+            out.push({title:line, url:siteUrl});
+        });
+    }
     return out;
 }
 
 /* ---- 第一备用：AnySearch（云端免费搜索/抽取，匿名可用，无需本地 CLI）----
  * 注意：api.anysearch.com 不返回 CORS 头，纯前端浏览器直连会被拦截，
- * 因此必须经 CORS 代理转发。默认使用公共代理（查询会经第三方中转，敏感站点慎用）。
+ * 因此必须经 CORS 代理转发。以下为多个免费公共代理候选，自动按顺序探测：
+ * 1) corsproxy.io（免费层限 localhost/开发环境，本地测试首选）
+ * 2) codetabs（原默认，若恢复可用则自动切回）
+ * 3) allorigins / whateverorigin（备选）
+ * 任一代理连续失败 2 次即标记不可用、自动切换到下一个；
  * 如需更高可靠性/隐私，请用自托管代理（见 README「AnySearch 代理」一节，Node 10 行即可），
- * 或把 ANYSEARCH_PROXY 改为你自己的 serverless 代理（如 Vercel api/anysearch.js）。 */
-const ANYSEARCH_PROXY = "https://api.codetabs.com/v1/proxy/?quest=";
+ * 或把 localStorage 的 xiaozhao_anysearch_proxy 设为你的代理地址。 */
+const ANYSEARCH_PROXIES = [
+    "http://localhost:8787/",
+    "https://corsproxy.io/?url=",
+    "https://api.codetabs.com/v1/proxy/?quest=",
+    "https://api.allorigins.win/raw?url=",
+    "https://whateverorigin.org/GET?url="
+];
 function anysearchKey(){
     return (localStorage.getItem("xiaozhao_anysearch_key")||"").trim();
 }
+// 每个代理的连续失败计数；本地存储自定义代理
+let _proxyFail={};
+function _proxyFailed(px){_proxyFail[px]=(_proxyFail[px]||0)+1;}
+function _proxyOk(px){_proxyFail[px]=0;}
+function _activeProxies(){
+    // 用户自定义代理优先
+    const custom=(localStorage.getItem("xiaozhao_anysearch_proxy")||"").trim();
+    const list=custom?[custom]:ANYSEARCH_PROXIES.slice();
+    // 过滤掉连续失败>=2 的（除非只剩它一个）
+    const live=list.filter(function(p){return _proxyFail[p]<2;});
+    return live.length?live:list;
+}
 async function anysearchExtract(siteUrl){
     const target = "https://api.anysearch.com/mcp";
-    const url = ANYSEARCH_PROXY ? (ANYSEARCH_PROXY + encodeURIComponent(target)) : target;
     const headers = {"Content-Type":"application/json","X-Anysearch-Client":"skill/3.0.1"};
     const ak = anysearchKey();
     if(ak) headers["Authorization"] = "Bearer "+ak;
     const body = JSON.stringify({jsonrpc:"2.0",id:1,method:"tools/call",params:{name:"extract",arguments:{url:siteUrl}}});
-    const resp = await fetch(url,{method:"POST",headers:headers,body:body});
-    if(!resp.ok) throw new Error("AnySearch HTTP "+resp.status);
-    const json = await resp.json();
-    if(json.error) throw new Error((json.error.message)||"AnySearch error");
-    const content = (json.result&&json.result.content)||[];
-    let md="";
-    for(let i=0;i<content.length;i++){ if(content[i].type==="text"){ md=content[i].text; break; } }
-    if(!md) throw new Error("AnySearch empty result");
-    return extractJobsFromMarkdown(md, siteUrl);
+    const proxies = _activeProxies();
+    let lastErr=null;
+    for(let pi=0;pi<proxies.length;pi++){
+        const px=proxies[pi];
+        const url = px + encodeURIComponent(target);
+        try{
+            const resp = await fetch(url,{method:"POST",headers:headers,body:body});
+            if(!resp.ok){ _proxyFailed(px); lastErr=new Error("AnySearch HTTP "+resp.status); continue; }
+            const json = await resp.json();
+            if(json.error){ lastErr=new Error(json.error.message||"AnySearch error"); continue; }
+            const content = (json.result&&json.result.content)||[];
+            let md="";
+            for(let i=0;i<content.length;i++){ if(content[i].type==="text"){ md=content[i].text; break; } }
+            if(!md){ lastErr=new Error("AnySearch empty result"); continue; }
+            _proxyOk(px);
+            return extractJobsFromMarkdown(md, siteUrl);
+        }catch(e){ _proxyFailed(px); lastErr=e; }
+    }
+    throw lastErr||new Error("AnySearch all proxies failed");
 }
 
 async function firecrawlScrape(siteUrl, key){
@@ -1228,11 +1276,26 @@ async function startCrawl(){
     ov.style.display='flex';
     pf.style.width='0%';
 
+    // 空状态下显示进度条
+    var cp=document.getElementById('crawlProgress');
+    var cpText=document.getElementById('cpText');
+    if(cp)cp.style.display='block';
+    function updateCp(extra){
+        if(cpText)cpText.textContent='已抓 '+doneCount+'/'+total+' 站，已获取 '+all.length+' 条｜'+extra;
+    }
+
     let all=[];
+    var doneCount=0;
     var indLabel=indSel||'全部行业';
 
     function dedup(arr){var seen={};return arr.filter(function(x){if(!x.u||seen[x.u])return false;seen[x.u]=1;return true;});}
-    function showData(){all=dedup(all);D=all;F=D.slice();currentPage=1;render();saveData();}
+    function showData(){
+        all=dedup(all);D=all;F=D.slice();currentPage=1;render();saveData();
+        // 空状态时显示爬取进度
+        if(!D.length && cp && cp.style.display!=='none'){
+            updateCp('继续爬后台...');
+        }
+    }
 
     // 第一批：前20个站（或选中行业全部），加载完立即展示
     lt.textContent='正在加载前'+FIRST_BATCH+'个招聘网站（'+indLabel+'）...';
@@ -1252,12 +1315,14 @@ async function startCrawl(){
                 ov.style.display='none';toast("API Key 无效，请更新");return;
             }
         }
+        doneCount++;
+        updateCp('首批 '+FIRST_BATCH+' 站中...');
     }
 
     // 立即展示第一批数据
     showData();
     ov.style.display='none';
-    toast('已加载'+D.length+'条，后台继续加载剩余'+(CRAWL_SITES.length-FIRST_BATCH)+'个站点...');
+    toast('✅ 前 '+FIRST_BATCH+' 站已加载（'+D.length+' 条），后台继续加载剩余 '+(total-FIRST_BATCH)+' 站');
 
     // 后台加载剩余站点：不遮挡页面，让用户先看到前 20 条
     for(var j=FIRST_BATCH;j<total;j++){
@@ -1270,16 +1335,18 @@ async function startCrawl(){
             }
             if(res2) res2.forEach(function(r){if(r&&r.url){var it=mapResult(r,s2);if(matchKW(it))all.push(it);}});
         }catch(e){}
+        doneCount++;
         if((j+1)%10===0||j===total-1){
             showData();
-            toast('后台加载中 '+(j+1)+'/'+total+' 站，已抓 '+D.length+' 条');
+            toast('⏳ 后台加载中 '+(j+1)+'/'+total+' 站，已获取 '+D.length+' 条');
         }
     }
 
     ov.style.display='none';
     showData();
-    if(D.length){toast('全部加载完成！共 '+D.length+' 条招聘信息');}
-    else{toast('未获取到数据，请检查 Key 或网络');}
+    if(cp)cp.style.display='none';
+    if(D.length){toast('🎉 全部加载完成！共 '+D.length+' 条招聘信息');}
+    else{toast('⚠️ 未获取到数据，请检查 Key 或网络');}
 }
 
 function loadSample(){

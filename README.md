@@ -38,16 +38,13 @@
 Firecrawl 主选抓取**失败时**，页面会**自动**调用 **AnySearch extract**（云端免费、匿名可用、无需安装本地 CLI）兜底抓取该招聘页；若仍失败，才提示用本地 CLI。
 
 - 顶栏新增 **「AnySearch Key（可选）」** 框：留空即用匿名（限速），填了在 https://anysearch.com/console/api-keys 申请的免费 Key 可提额
-- **CORS 说明（重要）**：`api.anysearch.com` 不返回跨域头，纯前端浏览器直连会被拦截，因此代码默认经**公共 CORS 代理**（`api.codetabs.com`）转发——你的查询会经第三方中转，**敏感站点慎用**
-- **自托管代理（推荐，隐私更好）**：把 `index.html` 顶部 `ANYSEARCH_PROXY` 改成你自己的代理即可。极简 Node 代理（10 行）：
-```js
-// proxy.js  →  node proxy.js  →  http://localhost:8787/?url=<目标>
-const http=require('http'),https=require('https'),{URL}=require('url');
-http.createServer((req,res)=>{const t=new URL(decodeURIComponent(req.url.slice(6)));
-const r=https.request({host:t.hostname,path:t.pathname+t.search,method:req.method,headers:{'Content-Type':'application/json'}},
-x=>{res.setHeader('Access-Control-Allow-Origin','*');x.pipe(res);});
-let b='';req.on('data',c=>b+=c);req.on('end',()=>{if(b)r.write(b);r.end();});}).listen(8787);
+- **CORS 说明（重要）**：`api.anysearch.com` 不返回跨域头，纯前端浏览器直连会被拦截，因此代码内置**多代理自动切换**：本地代理 `http://localhost:8787/`（最稳定）→ `corsproxy.io` → `codetabs` → `allorigins` → `whateverorigin`，哪个可用自动用哪个，连续失败自动切换
+- **本地代理（推荐，最稳定）**：项目根目录已内置 `proxy.js`，一条命令启动，AnySearch 走本地代理（无第三方中转、无公共代理不稳定的问题）：
+```bash
+node proxy.js            # 默认端口 8787，启动后页面自动检测并使用
+node proxy.js 9090       # 自定义端口
 ```
+- **自托管 serverless 代理（部署 GitHub Pages 时推荐）**：在 `index.html` 顶部 `ANYSEARCH_PROXIES` 数组最前面加你自己的代理地址（如 Vercel/Cloudflare 的 `api/anysearch.js`），或设置浏览器 localStorage 的 `xiaozhao_anysearch_proxy` 覆盖默认列表
 
 ### 方式二：BrowserAct 本地 CLI（备用②，专破反爬/验证码）
 
@@ -125,8 +122,11 @@ Apache 2.0 License
 ### v2.3.0
 - **新增 714 家公开校招节点**：通过公开校招信息聚合，新增 714 家企业官网/招聘页节点（原始提取 845 家，经 URL 合法性清洗移除 131 个无效链接/占位符），涵盖互联网科技、银行金融、能源电力、装备重工、汽车制造、医药医疗、快消零售、建筑地产、航天军工、通信运营商、石油化工、交通物流、农业食品等 13 大行业。站点总量从 142 → **856**（126 家企业官网 + 16 个官方公众号 + 714 家新增节点 + 3 家综合招聘网站）
 - 新增节点全部来自公开可爬的企业官方招聘页/官方公告页，不含第三方招聘平台（如 mokahr/feishu jobs/zhiye.com 等）
+- 抓取提取更宽松：JOB_WORDS 增加「职位/岗位/社招/热招/board/join」等关键词；host 白名单放宽支持 `jobs.*/.career./zhiye.com/mokahr` 等子域名；无链接时从 markdown 纯文本兜底提取职位标题
+- 空状态抓取进度可见：首批 20 站完成立即显示「✅ 前 20 站已加载（N 条），后台继续加载剩余 X 站」；后台每 10 站 toast 报进度；空状态时显示实时抓取进度条
 - 新增节点保留地点信息，支持地点/关键词定向爬取（v2.2.0 功能）
 - 版本号升至 v2.3.0
+- ⚠️ **注意**：内置的免费 Firecrawl Key 额度有限（每月 500 次），多人共用或多次测试后可能返回 429。遇到「已抓 N 站 0 条」时，可在顶栏「Firecrawl Key」输入框填自己的 Key 覆盖（仅存本地浏览器），或跑本地 CLI 备用（BrowserAct/OpenCLI）
 
 ### v2.2.0
 - **地点/关键词定向爬取**：搜索框填地点或关键词（如「北京」「Java」），一键爬虫抓取结果**只保留匹配项**（公司/职位/地点/福利任一命中即可），留空则抓该行业全部；配合行业定向可实现「行业 + 城市」双维精准
