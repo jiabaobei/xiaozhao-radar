@@ -1295,16 +1295,16 @@ async function tdFallback(silent){
         const seen={};
         const dedup=[];
         all.forEach(x=>{ const k=x.c+"|"+x.p+"|"+x.l; if(!seen[k]){seen[k]=1;dedup.push(x);} });
-        if(!dedup.length){ if(!silent) toast("⚠️ 腾讯文档兜底：未获取到数据"); return; }
+        if(!dedup.length){ if(!silent) toast("⚠️ 校招信息聚合平台：未获取到数据"); return; }
         D = dedup;
         // ★ 加载后立即应用当前的搜索/行业/学历等筛选条件，否则用户输入"成都"看不到任何过滤效果
         filterData();
         saveData();
         // 静默模式下不弹提示（自动加载场景），仅手动触发兜底时提示
-        if(!silent) toast("🆘 兜底加载完成：腾讯文档校招信息 "+D.length+" 条（其他抓取通道均不可用）");
+        if(!silent) toast("🆘 兜底加载完成：校招信息聚合平台 "+D.length+" 条（其他抓取通道均不可用）");
         return true;
     }catch(e){
-        if(!silent) toast("⚠️ 腾讯文档兜底失败："+e.message);
+        if(!silent) toast("⚠️ 校招信息聚合平台加载失败："+e.message);
         return false;
     }
 }
@@ -1362,7 +1362,7 @@ function tdToRow(r, sheetId){
         e: "",
         w: (batch?("批次:"+batch):""),
         d: deadline,
-        s: "腾讯文档",
+        s: "校招信息聚合平台",
         t: (ind==="互联网科技"?"互联网":"其他"),
         ind: ind,
         u: cleanUrl
@@ -1540,9 +1540,9 @@ async function startCrawl(){
     if(D.length>=10){toast('🎉 全部加载完成！共 '+D.length+' 条招聘信息');}
     else{
         // ★ 放宽兜底：少于 10 条视为"几乎全失败"，自动拉腾讯文档
-        toast('⚠️ Firecrawl/AnySearch 仅获取到 '+D.length+' 条，尝试腾讯文档兜底...');
+        toast('⚠️ Firecrawl/AnySearch 仅获取到 '+D.length+' 条，尝试校招信息聚合平台兜底...');
         if(cp){cp.style.display='block';}
-        if(cpText){cpText.textContent='正在加载腾讯文档校招数据（27届实习提前批信息汇总）...';}
+        if(cpText){cpText.textContent='正在加载校招信息聚合平台数据（27届实习提前批信息汇总）...';}
         var okTd = await tdFallback();
         if(cp)cp.style.display='none';
     }
