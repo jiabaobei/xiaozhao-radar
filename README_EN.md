@@ -42,17 +42,18 @@ opencli xiaozhao search "2027 校招" -f json > xiaozhao.json
 
 Then click **📤 Import** in the radar page and select `xiaozhao.json`.
 
-## Data sources (103 sites)
+## Data sources (987 sites)
 
 | Category | Count | Examples |
 |----------|-------|----------|
-| Internet giants | 50 | Tencent, Alibaba, ByteDance, Meituan, Baidu, JD, Huawei, Xiaomi, NetEase, PDD, Kuaishou, Didi, Bilibili, Ctrip... |
-| State-owned enterprises | 50 | State Grid, Sinopec, CNPC, China Mobile, China Telecom, Huaneng, Datang, CNNC, CASIC, AVIC... |
+| Corporate career pages | 126 | Tencent, Alibaba, ByteDance, Meituan, Baidu, JD, Huawei, Xiaomi, State Grid, Sinopec, CNPC, China Mobile... |
+| Official WeChat accounts | 16 | Huadian, Sinopec Longyuan, SAIC, CSCEC, ByteDance, Tencent IEG, PDD official recruiting accounts |
+| New public campus-recruitment nodes (v2.3.0) | 845 | Internet tech (228), banking & finance (81), energy & power (37), heavy equipment (26), FMCG (23), automotive (21), pharma & medical (18), telecom (6), construction (5), petrochemicals (5), logistics (2), agriculture (2), aerospace & defense (2) |
 | Job boards | 3 | 51job, Yingjiesheng, GuoPin |
 
 ## Features
 
-- **103 pre-configured career sites** — no manual URL entry
+- **987 pre-configured career sites** — no manual URL entry
 - **Batch crawl with Firecrawl** — first 20 sites load immediately, rest in background
 - **Pagination** — 20 / 50 / 100 items per page
 - **Category filter** — filter by Internet / SOE / Job board
