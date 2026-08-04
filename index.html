@@ -1212,6 +1212,8 @@ async function firecrawlScrape(siteUrl, key){
     });
     if(!resp.ok){
         const err=await resp.json().catch(()=>({}));
+        // ★ 429 限流：抛特殊错误，调用方识别后提前结束爬取走兜底（免费额度撑不起全量爬）
+        if(resp.status===429) throw new Error("FIRECRAWL_RATELIMIT");
         throw new Error(err.error||("HTTP "+resp.status));
     }    const json=await resp.json();
     const md=(json.data&&json.data.markdown)||"";
@@ -1558,11 +1560,14 @@ async function startCrawl(){
             if(res) res.forEach(function(r){if(r&&r.url){var it=mapResult(r,s);if(matchKW(it))all.push(it);}});
             return true;
         }catch(e){
+            // ★ Firecrawl 限流：抛特殊信号，整个爬取提前终止走兜底（不浪费 856 站逐个重试）
+            if(e && e.message==="FIRECRAWL_RATELIMIT") return "RATELIMIT";
             if(/[Uu]nauthorized|Invalid/.test(e.message)) return "BADKEY";
             return false;
         }
     }
     // 并发池：同时跑 CONCURRENCY 个任务
+    var rateLimited=false;
     async function crawlRange(startIdx, endIdx, label){
         let idx=startIdx;
         // ★ 抓一站立即刷新一次（不显示遮罩），让用户数据渐进增长
@@ -1572,6 +1577,7 @@ async function startCrawl(){
         }
         async function worker(){
             while(idx<endIdx){
+                if(rateLimited) return "STOP"; // 已限流，不再抓
                 const cur=idx++;
                 const s=sites[cur];
                 doneCount++;
@@ -1579,6 +1585,7 @@ async function startCrawl(){
                 pf.style.width=Math.min(100,(doneCount/total*100))+'%';
                 updateCp(label);
                 const r=await scrapeOne(s);
+                if(r==="RATELIMIT"){ rateLimited=true; return "STOP"; }
                 if(r==="BADKEY"){
                     ov.style.display='none';toast("API Key 无效，请更新");return "BADKEY";
                 }
@@ -1597,6 +1604,16 @@ async function startCrawl(){
     lt.textContent='正在并发抓取前 '+FIRST_BATCH+' 个招聘网站（'+indLabel+'）...';
     var firstStatus=await crawlRange(0, FIRST_BATCH, '首批 '+FIRST_BATCH+' 站并发中...');
     if(firstStatus==="BADKEY") return;
+    if(rateLimited){
+        ov.style.display='none';
+        toast('⚠️ Firecrawl 免费额度已用完，直接加载校招信息聚合平台数据...');
+        showData();
+        if(cp){cp.style.display='block';}
+        if(cpText){cpText.textContent='正在加载校招信息聚合平台数据（27届实习提前批信息汇总）...';}
+        var okTd = await tdFallback();
+        if(cp)cp.style.display='none';
+        return;
+    }
     showData();
     ov.style.display='none';
     toast('✅ 前 '+FIRST_BATCH+' 站已加载（'+D.length+' 条），后台继续并发加载剩余 '+(total-FIRST_BATCH)+' 站');
@@ -1604,6 +1621,16 @@ async function startCrawl(){
     // 后台加载剩余站点：并发5个，不遮挡页面，每10站刷新表格
     var bgStatus=await crawlRange(FIRST_BATCH, total, '后台并发加载中...');
     if(bgStatus==="BADKEY") return;
+    if(rateLimited){
+        ov.style.display='none';
+        showData();
+        toast('⚠️ Firecrawl 免费额度已用完，自动加载校招信息聚合平台补足...');
+        if(cp){cp.style.display='block';}
+        if(cpText){cpText.textContent='正在加载校招信息聚合平台数据（27届实习提前批信息汇总）...';}
+        var okTd2 = await tdFallback();
+        if(cp)cp.style.display='none';
+        return;
+    }
 
     ov.style.display='none';
     showData();
