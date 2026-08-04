@@ -1533,6 +1533,11 @@ async function startCrawl(){
     // 并发池：同时跑 CONCURRENCY 个任务
     async function crawlRange(startIdx, endIdx, label){
         let idx=startIdx;
+        // ★ 抓一站立即刷新一次（不显示遮罩），让用户数据渐进增长
+        function tickShow(){
+            if(startIdx===0){ showData(); }      // 第一批：每次都刷新
+            else if((idx-startIdx) % 5 === 0){ showData(); } // 后台：每 5 站刷一次
+        }
         async function worker(){
             while(idx<endIdx){
                 const cur=idx++;
@@ -1545,6 +1550,7 @@ async function startCrawl(){
                 if(r==="BADKEY"){
                     ov.style.display='none';toast("API Key 无效，请更新");return "BADKEY";
                 }
+                tickShow(); // 每抓完一站立即刷新表格
             }
             return "OK";
         }
