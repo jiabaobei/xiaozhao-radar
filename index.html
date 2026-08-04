@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>Xiaozhao Radar - 校招职位管理系统</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
@@ -1070,10 +1073,14 @@ var SAMPLE_DATA=[
 function init(){
     var saved=localStorage.getItem("xiaozhao_radar_data");
     if(saved){try{D=JSON.parse(saved);}catch(e){D=[];}}
-    // ★ 首次打开/旧数据稀少：直接用内置快照秒显（无需任何配置），用户打开页面立即看到数据
+    // ★ 优先用内置快照数据（保证用户打开页面立即看到校招数据，不依赖任何外部网络）
+    // 条件：localStorage 没数据 / 数据很少 / 数据不是聚合平台来源（说明是旧版小数据）
     var hasAgg = D.some(function(x){return x.s==="校招信息聚合平台";});
     if(D.length < 10 || (D.length < 300 && !hasAgg)){
-        try{ D = JSON.parse(JSON.stringify(TD_SNAPSHOT)); }catch(e){}
+        try{
+            D = JSON.parse(JSON.stringify(TD_SNAPSHOT));
+            hasAgg = true;
+        }catch(e){}
     }
     var k=localStorage.getItem("xiaozhao_firecrawl_key");
     if(k){document.getElementById('apiKey').value=k;}
