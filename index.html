@@ -80,7 +80,7 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 <div class="pbar"><div class="pfill" id="pfill"></div></div>
 </div>
 <div class="top-bar">
-<h1>📊 Xiaozhao Radar - 校招雷达 <span style="font-size:12px;background:rgba(255,255,255,.25);padding:3px 10px;border-radius:999px;font-weight:600;vertical-align:middle">v2.0.2</span></h1>
+<h1>📊 Xiaozhao Radar - 校招雷达 <span style="font-size:12px;background:rgba(255,255,255,.25);padding:3px 10px;border-radius:999px;font-weight:600;vertical-align:middle">v2.0.4</span></h1>
 <div>
 <button class="btn btn-p" onclick="startCrawl()">🕷 一键爬虫(Firecrawl主选)</button>
 <button class="btn btn-o" style="background:#0ea5e9;color:#fff" onclick="showToolHelp()">🛡 备用工具(BrowserAct/OpenCLI)</button>
@@ -100,15 +100,15 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 <option value="综合">综合招聘</option>
 </select>
 <select class="select" id="eduFilter" onchange="filterData()"><option value="">全部学历</option><option value="本科及以上">本科及以上</option><option value="硕士及以上">硕士及以上</option></select>
-<input type="password" class="key-input" id="apiKey" placeholder="Firecrawl API Key (fc-...)" oninput="localStorage.setItem('xiaozhao_firecrawl_key',this.value)">
+<input type="password" class="key-input" id="apiKey" placeholder="Firecrawl Key（已内置默认·留空即用）" oninput="localStorage.setItem('xiaozhao_firecrawl_key',this.value)">
 <input type="password" class="key-input" id="anysearchKey" placeholder="AnySearch Key（可选·留空匿名）" oninput="localStorage.setItem('xiaozhao_anysearch_key',this.value)" style="width:190px">
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px;margin-left:0" onclick="loadSample()">📋 演示数据</button>
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('company')">按公司</button>
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('deadline')">按截止</button>
 <span class="stats" id="stats">共 0 条记录</span>
 </div>
-<div class="hint">🔥 一键爬虫(Firecrawl)<b>主选</b>会真实抓取<b>腾讯/阿里巴巴/美团/字节跳动/华为/国家电网/中国石化</b>等100家央企互联网大厂官方招聘页，3家综合招聘网站（51job/应届生/国聘）排最后。先加载20个站立即展示，后台继续加载剩余。<b>① AnySearch 第一备用</b>（云端免费·匿名可用·经CORS代理）｜两层本地 CLI 备用：<b>② BrowserAct</b>（专破反爬/验证码）｜<b>③ OpenCLI</b>（覆盖51job全量）。点「🛡 备用工具」看配置与命令。API Key 仅存本地浏览器。</div>
-<div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p>填写上方 Firecrawl API Key 后点击「🕷 一键爬虫」获取真实职位<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p></div>
+<div class="hint">🔥 一键爬虫(Firecrawl)<b>主选</b>会真实抓取<b>腾讯/阿里巴巴/美团/字节跳动/华为/国家电网/中国石化</b>等100家央企互联网大厂官方招聘页，3家综合招聘网站（51job/应届生/国聘）排最后。先加载20个站立即展示，后台继续加载剩余。<b>① AnySearch 第一备用</b>（云端免费·匿名可用·经CORS代理）｜两层本地 CLI 备用：<b>② BrowserAct</b>（专破反爬/验证码）｜<b>③ OpenCLI</b>（覆盖51job全量）。点「🛡 备用工具」看配置与命令。已<b>内置默认 Firecrawl Key</b>，普通学生无需注册直接可用；API Key 仅存本地浏览器。</div>
+<div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p>已内置默认 Firecrawl Key，直接点击「🕷 一键爬虫」获取真实职位（也可填自己的 Key 覆盖）<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p></div>
 <table id="dataTable" style="display:none">
 <thead><tr><th style="width:44px">#</th><th>公司</th><th>职位 / 标题</th><th>地点</th><th>学历</th><th>福利 / 摘要</th><th>截止日期</th><th>链接</th><th>来源</th><th style="width:44px"></th></tr></thead>
 <tbody id="tbody"></tbody>
@@ -156,6 +156,10 @@ opencli weibo search 招聘
 </div>
 <script>
 let D=[],F=[],currentPage=1,pageSize=20;
+
+// 项目内置默认 Firecrawl Key（作者免费额度）：普通学生开箱即用，无需注册
+// 用户在上方输入框填入自己的 Key 后会覆盖此默认值；留空则用内置默认 Key
+const DEFAULT_FIRECRAWL_KEY = "fc-3d22bb5df55f4a5f96ac29099fe87b0d";
 
 const CRAWL_SITES = [
   // ===== 互联网大厂（50家）=====
@@ -411,8 +415,8 @@ function mapResult(r, cat){
 // ===== 分批加载：先20个站展示，后台加载剩余 =====
 async function startCrawl(){
     const keyInput=document.getElementById('apiKey');
-    const key=((keyInput.value||"").trim()||localStorage.getItem("xiaozhao_firecrawl_key")||"").toLowerCase();
-    if(!key){toast("请先填写 Firecrawl API Key");keyInput.focus();return;}
+    // 取值优先级：用户即时输入 > 本地存储 > 内置默认 Key（开箱即用）
+    const key=((keyInput.value||"").trim()||localStorage.getItem("xiaozhao_firecrawl_key")||DEFAULT_FIRECRAWL_KEY||"").toLowerCase();
     localStorage.setItem("xiaozhao_firecrawl_key",key);
 
     var ov=document.getElementById('overlay');
