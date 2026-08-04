@@ -1437,7 +1437,7 @@ function mapResult(r, site){
     };
 }
 
-// ===== 分批加载：先20个站展示，后台加载剩余 =====
+// ===== 分批加载：前20站并发抓取立即展示，后台并发继续加载 =====
 async function startCrawl(){
     const keyInput=document.getElementById('apiKey');
     // 取值优先级：用户即时输入 > 本地存储 > 内置默认 Key（开箱即用）
@@ -1450,6 +1450,7 @@ async function startCrawl(){
     if(!sites.length){toast("该行业暂无站点，请换一个行业");return;}
     var total=sites.length;
     var FIRST_BATCH=Math.min(20,total);
+    var CONCURRENCY=5; // 并发数：同时抓5个站，大幅提速（Firecrawl 免费层支持）
 
     // 地点/关键词定向：搜索框填了内容（如"北京"），抓取结果只保留匹配项
     var kw=(document.getElementById('searchInput').value||"").trim();
@@ -1489,50 +1490,56 @@ async function startCrawl(){
         }
     }
 
-    // 第一批：前20个站（或选中行业全部），加载完立即展示
-    lt.textContent='正在加载前'+FIRST_BATCH+'个招聘网站（'+indLabel+'）...';
-    for(var i=0;i<FIRST_BATCH;i++){
-        var s=sites[i];
-        lt.textContent='正在抓取 ('+(i+1)+'/'+total+'): '+s.cat;
-        pf.style.width=((i+1)/total*100)+'%';
+    // 并发抓取单个站点（Firecrawl 主选 → AnySearch 备用），返回是否成功
+    async function scrapeOne(s){
         try{
             var res=await firecrawlScrape(s.url,key);
             if(!res||!res.length){
-                // 第一备用：AnySearch extract（云端免费，匿名可用，经 CORS 代理）
                 res=await anysearchExtract(s.url);
             }
             if(res) res.forEach(function(r){if(r&&r.url){var it=mapResult(r,s);if(matchKW(it))all.push(it);}});
+            return true;
         }catch(e){
-            if(/[Uu]nauthorized|Invalid/.test(e.message)){
-                ov.style.display='none';toast("API Key 无效，请更新");return;
-            }
+            if(/[Uu]nauthorized|Invalid/.test(e.message)) return "BADKEY";
+            return false;
         }
-        doneCount++;
-        updateCp('首批 '+FIRST_BATCH+' 站中...');
+    }
+    // 并发池：同时跑 CONCURRENCY 个任务
+    async function crawlRange(startIdx, endIdx, label){
+        let idx=startIdx;
+        async function worker(){
+            while(idx<endIdx){
+                const cur=idx++;
+                const s=sites[cur];
+                doneCount++;
+                lt.textContent='正在抓取 ('+doneCount+'/'+total+'): '+s.cat;
+                pf.style.width=Math.min(100,(doneCount/total*100))+'%';
+                updateCp(label);
+                const r=await scrapeOne(s);
+                if(r==="BADKEY"){
+                    ov.style.display='none';toast("API Key 无效，请更新");return "BADKEY";
+                }
+            }
+            return "OK";
+        }
+        const workers=[];
+        for(let w=0;w<CONCURRENCY;w++) workers.push(worker());
+        const results=await Promise.all(workers);
+        if(results.indexOf("BADKEY")>=0) return "BADKEY";
+        return "OK";
     }
 
-    // 立即展示第一批数据
+    // 第一批：前20个站并发抓，每5站立即刷新一次（用户最快几秒看到数据）
+    lt.textContent='正在并发抓取前 '+FIRST_BATCH+' 个招聘网站（'+indLabel+'）...';
+    var firstStatus=await crawlRange(0, FIRST_BATCH, '首批 '+FIRST_BATCH+' 站并发中...');
+    if(firstStatus==="BADKEY") return;
     showData();
     ov.style.display='none';
-    toast('✅ 前 '+FIRST_BATCH+' 站已加载（'+D.length+' 条），后台继续加载剩余 '+(total-FIRST_BATCH)+' 站');
+    toast('✅ 前 '+FIRST_BATCH+' 站已加载（'+D.length+' 条），后台继续并发加载剩余 '+(total-FIRST_BATCH)+' 站');
 
-    // 后台加载剩余站点：不遮挡页面，让用户先看到前 20 条
-    for(var j=FIRST_BATCH;j<total;j++){
-        var s2=sites[j];
-        try{
-            var res2=await firecrawlScrape(s2.url,key);
-            if(!res2||!res2.length){
-                // 第一备用：AnySearch extract（云端免费，匿名可用，经 CORS 代理）
-                res2=await anysearchExtract(s2.url);
-            }
-            if(res2) res2.forEach(function(r){if(r&&r.url){var it=mapResult(r,s2);if(matchKW(it))all.push(it);}});
-        }catch(e){}
-        doneCount++;
-        if((j+1)%10===0||j===total-1){
-            showData();
-            toast('⏳ 后台加载中 '+(j+1)+'/'+total+' 站，已获取 '+D.length+' 条');
-        }
-    }
+    // 后台加载剩余站点：并发5个，不遮挡页面，每10站刷新表格
+    var bgStatus=await crawlRange(FIRST_BATCH, total, '后台并发加载中...');
+    if(bgStatus==="BADKEY") return;
 
     ov.style.display='none';
     showData();
