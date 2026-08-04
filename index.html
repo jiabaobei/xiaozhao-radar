@@ -130,7 +130,9 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 <span class="stats" id="stats">共 0 条记录</span>
 </div>
 <div class="hint">📌 <b>使用步骤（必看）</b>：① 先在「行业」下拉选好目标行业（固定 15 类）→ ② 可选：在搜索框填地点/关键词，如「北京」→ ③ 点「🕷 一键爬虫」精准定向抓取。填了关键词则抓取结果<b>只保留匹配项</b>（如填北京只显示北京岗位），留空则抓该行业全部。🔥 一键爬虫(Firecrawl)<b>主选</b>会真实抓取<b>腾讯/阿里巴巴/美团/字节跳动/华为/国家电网/中国石化</b>等126家企业官网招聘页 + <b>16 个企业官方公众号校招推文</b>（已逐一校验发布者为官方招聘号，mp.weixin.qq.com 公开可抓）+ <b>714 家新增公开校招节点</b>（来自公开校招信息聚合，已清洗无效链接），3家综合招聘网站（51job/应届生/国聘）排最后。先加载20个站立即展示，后台继续加载剩余。<b>① AnySearch 第一备用</b>（云端免费·匿名可用·经CORS代理）｜两层本地 CLI 备用：<b>② BrowserAct</b>（专破反爬/验证码）｜<b>③ OpenCLI</b>（覆盖51job全量）。点「🛡 备用工具」看配置与命令。已<b>内置默认 Firecrawl Key</b>，普通学生无需注册直接可用；API Key 仅存本地浏览器。</div>
-<div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p id="emptyHint">已内置默认 Firecrawl Key。<b>使用步骤</b>：① 先选「行业」（如银行金融）→ ② 可选：搜索框填「北京」等地点/关键词 → ③ 点「🕷 一键爬虫」定向抓取（也可填自己的 Key 覆盖）<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p><div id="crawlProgress" style="display:none;margin-top:16px;padding:12px;background:#f0f4ff;border-radius:8px;color:#4338ca;font-size:13px"><b>⏳ 正在爬取中...</b><span id="cpText"></span></div></div>
+<!-- ★ 全局抓取进度条（页面顶部、表格上方，任何状态都可见） -->
+<div id="crawlProgress" style="display:none;margin:10px 20px;padding:12px 16px;background:#f0f4ff;border-radius:8px;color:#4338ca;font-size:13px;box-shadow:0 1px 4px rgba(91,110,245,.15)"><b>⏳ 正在爬取中...</b><span id="cpText"></span></div>
+<div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p id="emptyHint">已内置默认 Firecrawl Key。<b>使用步骤</b>：① 先选「行业」（如银行金融）→ ② 可选：搜索框填「北京」等地点/关键词 → ③ 点「🕷 一键爬虫」定向抓取（也可填自己的 Key 覆盖）<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p></div>
 <table id="dataTable" style="display:none">
 <thead><tr><th style="width:44px">#</th><th>公司</th><th>职位 / 标题</th><th>地点</th><th>学历</th><th>福利 / 摘要</th><th>截止日期</th><th>链接</th><th>来源</th><th style="width:44px"></th></tr></thead>
 <tbody id="tbody"></tbody>
