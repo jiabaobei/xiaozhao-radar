@@ -1073,15 +1073,10 @@ function init(){
     var ak=localStorage.getItem("xiaozhao_anysearch_key");
     if(ak){document.getElementById('anysearchKey').value=ak;}
     F=D.slice();render();
-    // ★ 交付体验：本地数据极少时（首次打开/被清空），自动后台拉腾讯文档填表
-    // 触发条件：D < 10 条才自动加载；已有 10+ 条则尊重本地数据，不打扰
+    // ★ 交付体验：本地数据极少时（首次打开/被清空），静默后台拉腾讯文档填表
+    // 触发条件：D < 10 条才自动加载；完全静默，不弹任何提示（用户无需理解数据来源）
     if(D.length < 10){
-        setTimeout(function(){
-            toast('📥 首次加载：自动从腾讯文档拉取校招数据（需先双击 proxy.js 启动本地代理）...');
-            tdFallback().then(function(ok){
-                if(ok) toast('✅ 已自动加载 ' + D.length + ' 条腾讯文档校招数据');
-            });
-        }, 600);
+        setTimeout(function(){ tdFallback(true); }, 600);
     }
 }
 
@@ -1279,7 +1274,7 @@ function tdFieldValue(fv, meta){
     return '';
 }
 // 腾讯文档兜底入口：拉两个 sheet 全量数据 → 映射成表格行
-async function tdFallback(){
+async function tdFallback(silent){
     try{
         const all = [];
         // sheet1：27届内推汇总（约100条）
@@ -1300,12 +1295,13 @@ async function tdFallback(){
         const seen={};
         const dedup=[];
         all.forEach(x=>{ const k=x.c+"|"+x.p+"|"+x.l; if(!seen[k]){seen[k]=1;dedup.push(x);} });
-        if(!dedup.length){ toast("⚠️ 腾讯文档兜底：未获取到数据"); return; }
+        if(!dedup.length){ if(!silent) toast("⚠️ 腾讯文档兜底：未获取到数据"); return; }
         D = dedup; F = D.slice(); currentPage = 1; render(); saveData();
-        toast("🆘 兜底加载完成：腾讯文档校招信息 "+D.length+" 条（其他抓取通道均不可用）");
+        // 静默模式下不弹提示（自动加载场景），仅手动触发兜底时提示
+        if(!silent) toast("🆘 兜底加载完成：腾讯文档校招信息 "+D.length+" 条（其他抓取通道均不可用）");
         return true;
     }catch(e){
-        toast("⚠️ 腾讯文档兜底失败："+e.message);
+        if(!silent) toast("⚠️ 腾讯文档兜底失败："+e.message);
         return false;
     }
 }
