@@ -1073,9 +1073,34 @@ function init(){
     var ak=localStorage.getItem("xiaozhao_anysearch_key");
     if(ak){document.getElementById('anysearchKey').value=ak;}
     F=D.slice();render();
-    // ★ 交付体验：本地数据极少时（首次打开/被清空），静默后台拉腾讯文档填表
-    // 触发条件：D < 10 条才自动加载；完全静默，不弹任何提示（用户无需理解数据来源）
-    if(D.length < 10){
+    // ★ 打开页面立即检测本地代理：不在线时醒目提示（腾讯文档兜底 + AnySearch 都依赖它）
+    setTimeout(function(){
+        var timedOut=false;
+        var timer=setTimeout(function(){timedOut=true;showProxyHint();},2500);
+        // cache:no-store 防止浏览器命中旧缓存误判代理在线
+        fetch("http://localhost:8787/https://example.com/",{method:"GET",mode:"cors",cache:"no-store"})
+        .then(function(r){ clearTimeout(timer); if(!r.ok){showProxyHint();} })
+        .catch(function(){ clearTimeout(timer); showProxyHint(); });
+        function showProxyHint(){
+            var hint=document.getElementById('emptyHint');
+            var cp=document.getElementById('crawlProgress');
+            if(hint && cp){
+                hint.style.display='none';
+                cp.style.display='block';
+                cp.style.background='#fff3cd';
+                cp.style.color='#7a5c00';
+                var t=document.getElementById('cpText');
+                if(t) t.innerHTML='⚠️ <b>本地代理未启动</b>：请双击运行 <b>proxy.js</b> 后刷新本页（自动加载校招数据 + AnySearch 备用都依赖它）';
+            }else{
+                toast("⚠️ 请先双击运行 proxy.js 启动本地代理");
+            }
+        }
+    }, 800);
+    // ★ 交付体验：本地数据不足时（首次打开/旧数据稀少），静默后台拉腾讯文档填表
+    // 触发条件：D < 10 条，或 D 里没有"校招信息聚合平台"来源的数据（说明是旧版抓取的小数据）→ 自动加载
+    // 完全静默，不弹任何提示（用户无需理解数据来源）
+    var hasAgg = D.some(function(x){return x.s==="校招信息聚合平台";});
+    if(D.length < 10 || (D.length < 300 && !hasAgg)){
         setTimeout(function(){ tdFallback(true); }, 600);
     }
 }
@@ -1283,35 +1308,48 @@ function tdFieldValue(fv, meta){
     }catch(e){}
     return '';
 }
-// 腾讯文档兜底入口：拉两个 sheet 全量数据 → 映射成表格行
+// 腾讯文档兜底入口：拉两个 sheet 全量数据 → 映射成表格行（边拉边显示）
 async function tdFallback(silent){
     try{
-        const all = [];
-        // sheet1：27届内推汇总（约100条）
+        let all = [];
+        const seenDup = {};
+        function addAll(recs){
+            recs.forEach(r => {
+                const it = tdToRow(r, "tTNjGc");
+                if(it){
+                    const k=it.c+"|"+it.p+"|"+it.l;
+                    if(!seenDup[k]){ seenDup[k]=1; all.push(it); }
+                }
+            });
+        }
+        // ★ 边拉边显示：每拉完一个 sheet 立即渲染一次，用户几秒内就能看到数据在增长
+        function showPartial(){
+            // 不打断已有筛选，仅刷新表格
+            D = all;
+            try{ filterData(); }catch(e){ F=D.slice(); render(); }
+            saveData();
+        }
+        // sheet1：27届内推汇总（约100条，1个请求，秒出）
         let j1 = await tdFetchSheetRaw("tTNjGc", 200);
         let recs1 = tdParseSheet(j1);
-        recs1.forEach(r => { const it = tdToRow(r, "tTNjGc"); if(it) all.push(it); });
-        // sheet2：实习提前批每日更新（约1600条，分页拉）
+        addAll(recs1);
+        showPartial();
+        // sheet2：实习提前批每日更新（约1600条，分页拉，每页就渲染一次）
         const pageSize = 300;
         const total2 = 2000;
         for(let off=0; off<total2; off+=pageSize){
             let j2 = await tdFetchSheetRaw("tvVDZj", off+pageSize);
             let recs2 = tdParseSheet(j2);
             if(!recs2.length) break;
-            recs2.forEach(r => { const it = tdToRow(r, "tvVDZj"); if(it) all.push(it); });
+            addAll(recs2);
+            showPartial();
             if(recs2.length < pageSize) break;
         }
-        // 去重（按 公司+职位+地点）
-        const seen={};
-        const dedup=[];
-        all.forEach(x=>{ const k=x.c+"|"+x.p+"|"+x.l; if(!seen[k]){seen[k]=1;dedup.push(x);} });
-        if(!dedup.length){ if(!silent) toast("⚠️ 校招信息聚合平台：未获取到数据"); return; }
-        D = dedup;
-        // ★ 加载后立即应用当前的搜索/行业/学历等筛选条件，否则用户输入"成都"看不到任何过滤效果
+        if(!all.length){ if(!silent) toast("⚠️ 校招信息聚合平台：未获取到数据"); return false; }
+        D = all;
         filterData();
         saveData();
-        // 静默模式下不弹提示（自动加载场景），仅手动触发兜底时提示
-        if(!silent) toast("🆘 兜底加载完成：校招信息聚合平台 "+D.length+" 条（其他抓取通道均不可用）");
+        if(!silent) toast("🆘 兜底加载完成：校招信息聚合平台 "+D.length+" 条");
         return true;
     }catch(e){
         if(!silent) toast("⚠️ 校招信息聚合平台加载失败："+e.message);
