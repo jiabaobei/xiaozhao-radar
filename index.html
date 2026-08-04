@@ -101,12 +101,13 @@ code{background:#e7e9f5;color:#5b3fd6;padding:1px 6px;border-radius:4px;font-siz
 </select>
 <select class="select" id="eduFilter" onchange="filterData()"><option value="">全部学历</option><option value="本科及以上">本科及以上</option><option value="硕士及以上">硕士及以上</option></select>
 <input type="password" class="key-input" id="apiKey" placeholder="Firecrawl API Key (fc-...)" oninput="localStorage.setItem('xiaozhao_firecrawl_key',this.value)">
+<input type="password" class="key-input" id="anysearchKey" placeholder="AnySearch Key（可选·留空匿名）" oninput="localStorage.setItem('xiaozhao_anysearch_key',this.value)" style="width:190px">
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px;margin-left:0" onclick="loadSample()">📋 演示数据</button>
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('company')">按公司</button>
 <button class="btn btn-p" style="font-size:12px;padding:6px 12px" onclick="sortData('deadline')">按截止</button>
 <span class="stats" id="stats">共 0 条记录</span>
 </div>
-<div class="hint">🔥 一键爬虫(Firecrawl)<b>主选</b>会真实抓取<b>腾讯/阿里巴巴/美团/字节跳动/华为/国家电网/中国石化</b>等100家央企互联网大厂官方招聘页，3家综合招聘网站（51job/应届生/国聘）排最后。先加载20个站立即展示，后台继续加载剩余。两层本地 CLI 备用：<b>② BrowserAct</b>（专破反爬/验证码）｜<b>③ OpenCLI</b>（覆盖51job全量）。点「🛡 备用工具」看配置与命令。API Key 仅存本地浏览器。</div>
+<div class="hint">🔥 一键爬虫(Firecrawl)<b>主选</b>会真实抓取<b>腾讯/阿里巴巴/美团/字节跳动/华为/国家电网/中国石化</b>等100家央企互联网大厂官方招聘页，3家综合招聘网站（51job/应届生/国聘）排最后。先加载20个站立即展示，后台继续加载剩余。<b>① AnySearch 第一备用</b>（云端免费·匿名可用·经CORS代理）｜两层本地 CLI 备用：<b>② BrowserAct</b>（专破反爬/验证码）｜<b>③ OpenCLI</b>（覆盖51job全量）。点「🛡 备用工具」看配置与命令。API Key 仅存本地浏览器。</div>
 <div id="empty"><div class="icon">📭</div><h3>还没有数据</h3><p>填写上方 Firecrawl API Key 后点击「🕷 一键爬虫」获取真实职位<br><small style="color:#999">或点击「📋 演示数据」查看示例（不会联网）</small></p></div>
 <table id="dataTable" style="display:none">
 <thead><tr><th style="width:44px">#</th><th>公司</th><th>职位 / 标题</th><th>地点</th><th>学历</th><th>福利 / 摘要</th><th>截止日期</th><th>链接</th><th>来源</th><th style="width:44px"></th></tr></thead>
@@ -285,6 +286,8 @@ function init(){
     if(saved){try{D=JSON.parse(saved);}catch(e){D=[];}}
     var k=localStorage.getItem("xiaozhao_firecrawl_key");
     if(k){document.getElementById('apiKey').value=k;}
+    var ak=localStorage.getItem("xiaozhao_anysearch_key");
+    if(ak){document.getElementById('anysearchKey').value=ak;}
     F=D.slice();render();
 }
 
@@ -313,6 +316,33 @@ function extractJobsFromMarkdown(md, siteUrl){
         out.push({title:text, url:url});
     });
     return out;
+}
+
+/* ---- 第一备用：AnySearch（云端免费搜索/抽取，匿名可用，无需本地 CLI）----
+ * 注意：api.anysearch.com 不返回 CORS 头，纯前端浏览器直连会被拦截，
+ * 因此必须经 CORS 代理转发。默认使用公共代理（查询会经第三方中转，敏感站点慎用）。
+ * 如需更高可靠性/隐私，请用自托管代理（见 README「AnySearch 代理」一节，Node 10 行即可），
+ * 或把 ANYSEARCH_PROXY 改为你自己的 serverless 代理（如 Vercel api/anysearch.js）。 */
+const ANYSEARCH_PROXY = "https://api.codetabs.com/v1/proxy/?quest=";
+function anysearchKey(){
+    return (localStorage.getItem("xiaozhao_anysearch_key")||"").trim();
+}
+async function anysearchExtract(siteUrl){
+    const target = "https://api.anysearch.com/mcp";
+    const url = ANYSEARCH_PROXY ? (ANYSEARCH_PROXY + encodeURIComponent(target)) : target;
+    const headers = {"Content-Type":"application/json","X-Anysearch-Client":"skill/3.0.1"};
+    const ak = anysearchKey();
+    if(ak) headers["Authorization"] = "Bearer "+ak;
+    const body = JSON.stringify({jsonrpc:"2.0",id:1,method:"tools/call",params:{name:"extract",arguments:{url:siteUrl}}});
+    const resp = await fetch(url,{method:"POST",headers:headers,body:body});
+    if(!resp.ok) throw new Error("AnySearch HTTP "+resp.status);
+    const json = await resp.json();
+    if(json.error) throw new Error((json.error.message)||"AnySearch error");
+    const content = (json.result&&json.result.content)||[];
+    let md="";
+    for(let i=0;i<content.length;i++){ if(content[i].type==="text"){ md=content[i].text; break; } }
+    if(!md) throw new Error("AnySearch empty result");
+    return extractJobsFromMarkdown(md, siteUrl);
 }
 
 async function firecrawlScrape(siteUrl, key){
@@ -405,7 +435,11 @@ async function startCrawl(){
         pf.style.width=((i+1)/CRAWL_SITES.length*100)+'%';
         try{
             var res=await firecrawlScrape(s.url,key);
-            res.forEach(function(r){if(r&&r.url)all.push(mapResult(r,s.cat));});
+            if(!res||!res.length){
+                // 第一备用：AnySearch extract（云端免费，匿名可用，经 CORS 代理）
+                res=await anysearchExtract(s.url);
+            }
+            if(res) res.forEach(function(r){if(r&&r.url)all.push(mapResult(r,s.cat));});
         }catch(e){
             if(/[Uu]nauthorized|Invalid/.test(e.message)){
                 ov.style.display='none';toast("API Key 无效，请更新");return;
@@ -426,7 +460,11 @@ async function startCrawl(){
         pf.style.width=((j+1)/CRAWL_SITES.length*100)+'%';
         try{
             var res2=await firecrawlScrape(s2.url,key);
-            res2.forEach(function(r){if(r&&r.url)all.push(mapResult(r,s2.cat));});
+            if(!res2||!res2.length){
+                // 第一备用：AnySearch extract（云端免费，匿名可用，经 CORS 代理）
+                res2=await anysearchExtract(s2.url);
+            }
+            if(res2) res2.forEach(function(r){if(r&&r.url)all.push(mapResult(r,s2.cat));});
         }catch(e){}
         if((j+1)%10===0||j===CRAWL_SITES.length-1){
             showData();

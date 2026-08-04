@@ -2,15 +2,15 @@
 
 > **🔍 AI驱动的校招信息聚合平台 —— 100家央企&互联网大厂校招公告实时抓取，分批加载+分页浏览。**
 
-[![Version](https://img.shields.io/badge/version-2.0.2-blue)]()
+[![Version](https://img.shields.io/badge/version-2.0.3-blue)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)]()
 
 ## 🎬 v2.0.2 核心亮点
 
 > [观看 5 秒宣传视频](promo.mp4)（中文字幕 · 中文配音 · 1.1MB）
 
-- **三层爬虫工具策略**：主选 **Firecrawl**（浏览器直连，一键抓取 100 家公开官网）+ 备用② **BrowserAct**（本地 CLI，专破反爬/验证码）+ 备用③ **OpenCLI**（本地 CLI + Chrome 插件，覆盖 51job 全量）
-- **「🛡 备用工具」说明面板**：页面内置三层工具对比、安装与命令，一键复制，CLI 抓完 JSON 直接导入雷达
+- **四层爬虫工具策略**：主选 **Firecrawl**（浏览器直连）+ 第一备用 **AnySearch**（云端免费、匿名可用、无需本地 CLI，经 CORS 代理）+ 备用② **BrowserAct**（本地 CLI，专破反爬/验证码）+ 备用③ **OpenCLI**（本地 CLI + Chrome 插件，覆盖 51job 全量）
+- **「🛡 备用工具」说明面板**：页面内置四层工具对比、安装与命令，一键复制，CLI 抓完 JSON 直接导入雷达
 - **100家招聘官网**：50家互联网大厂 + 50家央企国企 + 3家综合招聘网站（排最后），分类筛选不变
 - **分批加载 + 分页浏览**：前20站秒出，后台续拉；20/50/100 条/页自由切换
 
@@ -31,6 +31,22 @@
 2. 双击 `xiaozhao-radar.html` 打开页面
 3. 在 `Firecrawl API Key` 框填 Key → 点 **🕷 一键爬虫**
 4. 前20个站爬完立即出数据，后台继续加载剩余站点
+
+### 方式一·B：AnySearch 第一备用（云端免费，自动兜底）
+
+Firecrawl 主选抓取**失败时**，页面会**自动**调用 **AnySearch extract**（云端免费、匿名可用、无需安装本地 CLI）兜底抓取该招聘页；若仍失败，才提示用本地 CLI。
+
+- 顶栏新增 **「AnySearch Key（可选）」** 框：留空即用匿名（限速），填了在 https://anysearch.com/console/api-keys 申请的免费 Key 可提额
+- **CORS 说明（重要）**：`api.anysearch.com` 不返回跨域头，纯前端浏览器直连会被拦截，因此代码默认经**公共 CORS 代理**（`api.codetabs.com`）转发——你的查询会经第三方中转，**敏感站点慎用**
+- **自托管代理（推荐，隐私更好）**：把 `index.html` 顶部 `ANYSEARCH_PROXY` 改成你自己的代理即可。极简 Node 代理（10 行）：
+```js
+// proxy.js  →  node proxy.js  →  http://localhost:8787/?url=<目标>
+const http=require('http'),https=require('https'),{URL}=require('url');
+http.createServer((req,res)=>{const t=new URL(decodeURIComponent(req.url.slice(6)));
+const r=https.request({host:t.hostname,path:t.pathname+t.search,method:req.method,headers:{'Content-Type':'application/json'}},
+x=>{res.setHeader('Access-Control-Allow-Origin','*');x.pipe(res);});
+let b='';req.on('data',c=>b+=c);req.on('end',()=>{if(b)r.write(b);r.end();});}).listen(8787);
+```
 
 ### 方式二：BrowserAct 本地 CLI（备用②，专破反爬/验证码）
 
@@ -63,7 +79,7 @@ opencli xiaozhao search "2027 校招" -f json > xiaozhao.json
 
 可选参数：`--city 成都` `--degree 本科` `--limit 30`；另有 `opencli xiaohongshu search 校招`、`opencli weibo search 招聘` 适配器。
 
-> **工具选择建议**：公开官网批量抓 → 主选 Firecrawl 一键搞定；站点反爬强/有验证码 → 备用② BrowserAct；需登录态的全量库（如 51job）→ 备用③ OpenCLI。
+> **工具选择建议**：公开官网批量抓 → 主选 Firecrawl 一键搞定；Firecrawl 失败/限流 → **第一备用 AnySearch**（云端免费，自动兜底，无需装任何东西）；站点反爬强/有验证码 → 备用② BrowserAct；需登录态的全量库（如 51job）→ 备用③ OpenCLI。
 
 ## 🎯 数据源（103条）
 
@@ -103,6 +119,14 @@ A: 导入函数已兼容多种字段命名（title/position、company、city/dis
 Apache 2.0 License
 
 ## 📋 更新日志
+
+### v2.0.3
+- 新增**第一备用：AnySearch**（云端统一搜索/抽取，免费、匿名可用、无需安装本地 CLI）
+  - Firecrawl 主选抓取失败时，自动调用 **AnySearch extract**（URL 全文抽取转 Markdown）兜底，失败再提示用本地 CLI
+  - 通过 `https://api.anysearch.com/mcp`（JSON-RPC 2.0）调用；纯前端因 CORS 限制须经代理转发（默认内置公共代理）
+- 顶栏新增 **AnySearch Key（可选）** 输入框，留空即匿名使用；可在 `index.html` 顶部 `ANYSEARCH_PROXY` 替换为自托管/serverless 代理
+- 版本号徽章更新至 v2.0.3
+- README 补充 AnySearch 第一备用用法、CORS 代理隐私提示与自托管代理方案
 
 ### v2.0.2
 - 新增**三层爬虫工具策略**：主选 Firecrawl（浏览器直连）+ 备用② BrowserAct（本地 CLI，破反爬/解验证码）+ 备用③ OpenCLI（本地 CLI + Chrome 插件，全量库）
