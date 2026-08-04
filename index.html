@@ -1189,10 +1189,193 @@ async function firecrawlScrape(siteUrl, key){
     if(!resp.ok){
         const err=await resp.json().catch(()=>({}));
         throw new Error(err.error||("HTTP "+resp.status));
-    }
-    const json=await resp.json();
+    }    const json=await resp.json();
     const md=(json.data&&json.data.markdown)||"";
     return extractJobsFromMarkdown(md, siteUrl);
+}
+
+// ===== 最终兜底：腾讯文档智能表格（27届实习提前批信息汇总）=====
+// 当前面所有抓取手段（Firecrawl/AnySearch/本地CLI）全部失败时，直接拉腾讯文档公开数据填表。
+// 数据源：https://docs.qq.com/smartsheet/DTkRMUVhoUWJXZEhJ
+// 读取方式：dop-api/opendoc JSONP 接口（匿名可读）→ 本地代理转发加 CORS 头 → base64+zlib 解压 → 解析 smartsheet 数据
+const TD_PAD_ID = "DTkRMUVhoUWJXZEhJ";
+const TD_SHEETS = [
+    { id: "tTNjGc", name: "27届内推汇总" },
+    { id: "tvVDZj", name: "实习提前批每日更新" }
+];
+// 腾讯文档 smartsheet 解析：字段定义 + 记录 → 招聘记录数组
+function tdParseSheet(jsonStr){
+    const rows = JSON.parse(jsonStr);
+    if(!rows.length || !Array.isArray(rows[0]) || rows[0].length<2) return [];
+    const h0 = rows[0][0], h1 = rows[0][1];
+    const fieldDefs = (h0.c && h0.c.k3 && h0.c.k3.k3) || {};
+    const fieldMeta = {};
+    for(const fid in fieldDefs){
+        const def = fieldDefs[fid];
+        const opts = {};
+        const optDef = def.k17 || def.k9 || {};
+        const optArr = (optDef && optDef.k3) || [];
+        if(Array.isArray(optArr)) optArr.forEach(o=>{ if(o&&o.k1&&o.k2) opts[o.k1]=o.k2; });
+        fieldMeta[fid] = { name: def.k30 || fid, type: def.k31, options: opts };
+    }
+    const records = (h1.c && h1.c.k2 && h1.c.k2.k1) || {};
+    const out = [];
+    for(const rid in records){
+        const fields = records[rid].k1 || records[rid] || {};
+        const rec = {};
+        for(const fid in fields){
+            const meta = fieldMeta[fid];
+            if(!meta) continue;
+            rec[meta.name] = tdFieldValue(fields[fid], meta);
+        }
+        out.push(rec);
+    }
+    return out;
+}
+function tdFieldValue(fv, meta){
+    try{
+        if(meta.type===1){ // 文本
+            const arr=fv.k1||[]; return arr.map(x=>x.k2||x.k1||'').join('');
+        }
+        if(meta.type===4){ // 日期时间戳
+            if(fv.k4!==undefined){
+                const ts=parseInt(fv.k4,10);
+                if(!isNaN(ts)){
+                    const d=new Date(ts);
+                    if(!isNaN(d.getTime())) return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,'0')+"-"+String(d.getDate()).padStart(2,'0');
+                }
+            }
+            return '';
+        }
+        if(meta.type===8){ // URL
+            const arr=fv.k8||fv.k1||[];
+            if(typeof arr==='string') return arr;
+            const links=[];
+            arr.forEach(x=>{ if(x&&x.k2) links.push(x.k2); });
+            return links.join(' ');
+        }
+        if(meta.type===9||meta.type===17){ // 多选/单选
+            const ids=fv.k9||fv.k17||[];
+            return ids.map(id=>meta.options[id]||id).join('/');
+        }
+        for(const k in fv){
+            const v=fv[k];
+            if(Array.isArray(v)&&v.length){
+                const texts=v.map(x=>(x&&x.k2)||(typeof x==='string'?x:'')).filter(Boolean);
+                if(texts.length) return texts.join('/');
+            }
+        }
+    }catch(e){}
+    return '';
+}
+// 腾讯文档兜底入口：拉两个 sheet 全量数据 → 映射成表格行
+async function tdFallback(){
+    try{
+        const all = [];
+        // sheet1：27届内推汇总（约100条）
+        let j1 = await tdFetchSheetRaw("tTNjGc", 200);
+        let recs1 = tdParseSheet(j1);
+        recs1.forEach(r => { const it = tdToRow(r, "tTNjGc"); if(it) all.push(it); });
+        // sheet2：实习提前批每日更新（约1600条，分页拉）
+        const pageSize = 300;
+        const total2 = 2000;
+        for(let off=0; off<total2; off+=pageSize){
+            let j2 = await tdFetchSheetRaw("tvVDZj", off+pageSize);
+            let recs2 = tdParseSheet(j2);
+            if(!recs2.length) break;
+            recs2.forEach(r => { const it = tdToRow(r, "tvVDZj"); if(it) all.push(it); });
+            if(recs2.length < pageSize) break;
+        }
+        // 去重（按 公司+职位+地点）
+        const seen={};
+        const dedup=[];
+        all.forEach(x=>{ const k=x.c+"|"+x.p+"|"+x.l; if(!seen[k]){seen[k]=1;dedup.push(x);} });
+        if(!dedup.length){ toast("⚠️ 腾讯文档兜底：未获取到数据"); return; }
+        D = dedup; F = D.slice(); currentPage = 1; render(); saveData();
+        toast("🆘 兜底加载完成：腾讯文档校招信息 "+D.length+" 条（其他抓取通道均不可用）");
+        return true;
+    }catch(e){
+        toast("⚠️ 腾讯文档兜底失败："+e.message);
+        return false;
+    }
+}
+// 拉单个 sheet（含解压，异步等待）
+async function tdFetchSheetRaw(sheetId, rows){
+    const target = "https://docs.qq.com/dop-api/opendoc?u=&noEscape=1&enableSmartsheetSplit=1&supportOptimizedVer=4&chunkCellSize=15000&normal=1&outformat=1&wb=1&nowb=0&callback=x&xsrf=&id="+TD_PAD_ID+"&subId="+sheetId+"&startrow=0&endrow="+rows;
+    const proxyList = _activeProxies();
+    let lastErr=null;
+    for(let i=0;i<proxyList.length;i++){
+        const px=proxyList[i];
+        try{
+            const resp = await fetch(px + encodeURIComponent(target));
+            if(!resp.ok){ lastErr=new Error("HTTP "+resp.status); continue; }
+            const text = await resp.text();
+            const m = text.match(/^[^(]*\((.*)\)\s*;?\s*$/s);
+            if(!m){ lastErr=new Error("JSONP 解析失败"); continue; }
+            const data = JSON.parse(m[1]);
+            const ccv = data.clientVars && data.clientVars.collab_client_vars;
+            const iat = ccv && ccv.initialAttributedText;
+            const t = iat && iat.text && iat.text[0];
+            if(!t || !t.smartsheet){ lastErr=new Error("无数据字段"); continue; }
+            const raw = atob(t.smartsheet);
+            const bytes = new Uint8Array(raw.length);
+            for(let k=0;k<raw.length;k++) bytes[k]=raw.charCodeAt(k);
+            const inflated = await inflateBytes(bytes);
+            return new TextDecoder().decode(inflated);
+        }catch(e){ lastErr=e; }
+    }
+    throw lastErr||new Error("腾讯文档代理不可用");
+}
+// 异步 zlib inflate（用 DecompressionStream）
+async function inflateBytes(bytes){
+    const ds = new DecompressionStream('deflate');
+    const stream = new Blob([bytes]).stream().pipeThrough(ds);
+    const buf = await new Response(stream).arrayBuffer();
+    return new Uint8Array(buf);
+}
+// 腾讯文档记录 → 表格行
+function tdToRow(r, sheetId){
+    const c = r["公司名称"] || "";
+    const p = (r["招聘岗位"] || "").slice(0,80);
+    const l = extractLocation((r["工作地点"]||"")+" "+(r["行业"]||""));
+    if(!c && !p) return null;
+    const deadline = r["招聘截止日期"] || "";
+    const url = r["投递链接or推文"] || r["投递链接"] || "";
+    // 清理无效 URL
+    const cleanUrl = (url && /^https?:\/\//.test(url)) ? url.split(/\s+/)[0] : "";
+    const ind = mapTDIndustry(r["行业"]||"");
+    const batch = r["批次"] || "";
+    const title = (p ? p : (batch||"校招信息"));
+    return {
+        c: c,
+        p: title,
+        l: l || extractLocation(r["工作地点"]||""),
+        e: "",
+        w: (batch?("批次:"+batch):""),
+        d: deadline,
+        s: "腾讯文档",
+        t: (ind==="互联网科技"?"互联网":"其他"),
+        ind: ind,
+        u: cleanUrl
+    };
+}
+// 腾讯文档行业 → 项目 15 类（轻量映射）
+function mapTDIndustry(tdInd){
+    if(!tdInd) return "综合";
+    if(/互联网|软件|游戏|AI|大模型|电商|科技/.test(tdInd)) return "互联网科技";
+    if(/银行|金融|证券|基金|保险|信托/.test(tdInd)) return "银行金融";
+    if(/能源|电力|燃气|核能/.test(tdInd)) return "能源电力";
+    if(/通信|5G|电信/.test(tdInd)) return "通信运营商";
+    if(/汽车|驾驶/.test(tdInd)) return "汽车制造";
+    if(/医药|医疗|生物|制药/.test(tdInd)) return "医药医疗";
+    if(/快消|零售|食品|饮料|家电/.test(tdInd)) return "快消零售";
+    if(/装备|机械|制造|机器人|半导体|芯片|硬件/.test(tdInd)) return "装备重工";
+    if(/建筑|地产|市政|工程/.test(tdInd)) return "建筑地产";
+    if(/石油|石化|化工/.test(tdInd)) return "石油化工";
+    if(/航天|航空|军工|国防/.test(tdInd)) return "航天军工";
+    if(/物流|运输|交通|邮政/.test(tdInd)) return "交通物流";
+    if(/农业|农林|畜牧|食品/.test(tdInd)) return "农业食品";
+    return "综合";
 }
 
 const CITY_LIST = ["北京","上海","广州","深圳","成都","杭州","武汉","南京","重庆","西安","苏州","天津","长沙","郑州","青岛","东莞","佛山","宁波","无锡","厦门","福州","济南","合肥","昆明","大连","哈尔滨","沈阳","长春","石家庄","太原","南昌","贵阳","南宁","海口","兰州","银川","西宁","呼和浩特","乌鲁木齐","拉萨"];
@@ -1346,7 +1529,14 @@ async function startCrawl(){
     showData();
     if(cp)cp.style.display='none';
     if(D.length){toast('🎉 全部加载完成！共 '+D.length+' 条招聘信息');}
-    else{toast('⚠️ 未获取到数据，请检查 Key 或网络');}
+    else{
+        toast('⚠️ Firecrawl/AnySearch 均未获取到数据，尝试腾讯文档兜底...');
+        // 最终兜底：腾讯文档智能表格（实时更新的 27届实习提前批信息）
+        if(cp){cp.style.display='block';}
+        if(cpText){cpText.textContent='正在加载腾讯文档校招数据（27届实习提前批信息汇总）...';}
+        var okTd = await tdFallback();
+        if(cp)cp.style.display='none';
+    }
 }
 
 function loadSample(){
