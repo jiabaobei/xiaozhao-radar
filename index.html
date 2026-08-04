@@ -1570,10 +1570,10 @@ async function startCrawl(){
     ov.style.display='none';
     showData();
     if(cp)cp.style.display='none';
-    if(D.length>=10){toast('🎉 全部加载完成！共 '+D.length+' 条招聘信息');}
+    if(D.length>=20){toast('🎉 全部加载完成！共 '+D.length+' 条招聘信息');}
     else{
-        // ★ 放宽兜底：少于 10 条视为"几乎全失败"，自动拉腾讯文档
-        toast('⚠️ Firecrawl/AnySearch 仅获取到 '+D.length+' 条，尝试校招信息聚合平台兜底...');
+        // ★ 兜底：Firecrawl 抓取结果不足 20 条时，自动加载腾讯文档（校招信息聚合平台）补足
+        toast('⚠️ Firecrawl/AnySearch 仅获取到 '+D.length+' 条（不足 20 条），自动加载校招信息聚合平台补足...');
         if(cp){cp.style.display='block';}
         if(cpText){cpText.textContent='正在加载校招信息聚合平台数据（27届实习提前批信息汇总）...';}
         var okTd = await tdFallback();
