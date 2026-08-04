@@ -1296,7 +1296,10 @@ async function tdFallback(silent){
         const dedup=[];
         all.forEach(x=>{ const k=x.c+"|"+x.p+"|"+x.l; if(!seen[k]){seen[k]=1;dedup.push(x);} });
         if(!dedup.length){ if(!silent) toast("⚠️ 腾讯文档兜底：未获取到数据"); return; }
-        D = dedup; F = D.slice(); currentPage = 1; render(); saveData();
+        D = dedup;
+        // ★ 加载后立即应用当前的搜索/行业/学历等筛选条件，否则用户输入"成都"看不到任何过滤效果
+        filterData();
+        saveData();
         // 静默模式下不弹提示（自动加载场景），仅手动触发兜底时提示
         if(!silent) toast("🆘 兜底加载完成：腾讯文档校招信息 "+D.length+" 条（其他抓取通道均不可用）");
         return true;
