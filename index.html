@@ -1343,12 +1343,36 @@ async function inflateBytes(bytes){
     return new Uint8Array(buf);
 }
 // 腾讯文档记录 → 表格行
+// 截止日期判断：已过期的记录直接过滤不显示
+function isExpiredDeadline(deadline){
+    if(!deadline) return false;
+    var d=String(deadline).replace(/\s+/g,' ').trim();
+    if(/招满即止|招聘中|长期|不限|持续/.test(d)) return false; // 长期有效
+    if(/已结束|已截止|过期|截止$/.test(d)) return true;        // 明确结束
+    // 完整日期：2026 06 30 / 2026-06-30 / 2026年6月30日 / 2026/6/30
+    var m=d.match(/(\d{4})[年\/\-.\s]\s*(\d{1,2})[月\/\-.\s]\s*(\d{1,2})日?/);
+    if(m){
+        var end=new Date(+m[1], +m[2]-1, +m[3]);
+        if(!isNaN(end.getTime())) return end.getTime() < Date.now();
+    }
+    // 月日：6月30日 / 06-30（未标年份，按当年判断；若当年已过则视为过期）
+    var m2=d.match(/(\d{1,2})月(\d{1,2})日/);
+    if(!m2) m2=d.match(/^(\d{1,2})[\/\-.](\d{1,2})$/);
+    if(m2){
+        var now=new Date();
+        var end2=new Date(now.getFullYear(), +m2[1]-1, +m2[2]);
+        if(!isNaN(end2.getTime())) return end2.getTime() < Date.now();
+    }
+    return false; // 无法识别格式，保守保留
+}
 function tdToRow(r, sheetId){
     const c = r["公司名称"] || "";
     const p = (r["招聘岗位"] || "").slice(0,80);
     const l = extractLocation((r["工作地点"]||"")+" "+(r["行业"]||""));
     if(!c && !p) return null;
     const deadline = r["招聘截止日期"] || "";
+    // ★ 截止日期已过 → 不显示
+    if(isExpiredDeadline(deadline)) return null;
     const url = r["投递链接or推文"] || r["投递链接"] || "";
     // 清理无效 URL
     const cleanUrl = (url && /^https?:\/\//.test(url)) ? url.split(/\s+/)[0] : "";
@@ -1483,6 +1507,8 @@ async function startCrawl(){
 
     function dedup(arr){var seen={};return arr.filter(function(x){if(!x.u||seen[x.u])return false;seen[x.u]=1;return true;});}
     function showData(){
+        // ★ 过滤已过期的记录（截止日期已过的不显示）
+        all=all.filter(function(x){return !isExpiredDeadline(x.d);});
         all=dedup(all);D=all;F=D.slice();currentPage=1;render();saveData();
         // 空状态时显示爬取进度
         if(!D.length && cp && cp.style.display!=='none'){
