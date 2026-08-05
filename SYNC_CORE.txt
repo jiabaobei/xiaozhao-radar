@@ -1,0 +1,7 @@
+校招雷达工作流核心信息：
+数据源：腾讯文档 https://docs.qq.com/smartsheet/DTkRMUVhoUWJXZEhJ
+子表：tTNjGc（27届内推汇总）、tvVDZj（实习提前批每日更新）
+脚本与文档：https://github.com/jiabaobei/xiaozhao-radar
+同步指令：用户说"同步校招"时，运行 python sync_tencent_docs.py --push
+字段映射：公司名称→c，招聘岗位→p，工作地点/行业→l，行业→ind，招聘截止日期→d，投递链接→u，批次→w，s=校招信息聚合平台
+已验证：2026-08-05 拉取1355条，push后GitHub Pages updated=2026-08-05
