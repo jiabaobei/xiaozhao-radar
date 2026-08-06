@@ -2,7 +2,7 @@
 
 > **🔍 AI驱动的校招信息聚合平台 —— 856 家央企/互联网大厂/各行业企业校招节点实时抓取，分批加载+分页浏览。**
 
-[![Version](https://img.shields.io/badge/version-2.3.0-blue)]()
+[![Version](https://img.shields.io/badge/version-2.4.0-blue)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)]()
 
 ## 🎬 v2.4.0 核心亮点
