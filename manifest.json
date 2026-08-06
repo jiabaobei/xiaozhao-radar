@@ -1,6 +1,6 @@
 {
   "name": "xiaozhao-radar",
-  "version": "1.0.0",
+  "version": "2.4.0",
   "description": "Xiaozhao Radar - Campus Recruitment Radar, real-time job data via Firecrawl",
   "main": "xiaozhao-radar.html",
   "scripts": {
@@ -19,5 +19,5 @@
     "MCP"
   ],
   "author": "jiabaobei",
-  "license": "MIT"
+  "license": "Apache-2.0"
 }

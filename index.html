@@ -9,15 +9,15 @@
 <title>Xiaozhao Radar - 校招职位管理系统</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:#eef1f6;color:#1f2937;min-height:100vh}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Microsoft YaHei",sans-serif;background:#eef1f6;color:#1f2937;min-height:100vh;font-size:15px}
 .top-bar{background:linear-gradient(135deg,#5b6ef5,#7c3aed);color:#fff;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:0 2px 10px rgba(91,110,245,.25)}
 .top-bar h1{font-size:19px;font-weight:600;letter-spacing:.5px}
 .toolbar{background:#fff;border-bottom:1px solid #eceef3;padding:12px 24px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-.s-input,.key-input,.select{padding:8px 12px;border:1px solid #dfe3ea;border-radius:8px;font-size:13px;background:#fbfcfe;transition:border-color .15s,box-shadow .15s}
+.s-input,.key-input,.select{padding:8px 12px;border:1px solid #dfe3ea;border-radius:8px;font-size:14px;background:#fbfcfe;transition:border-color .15s,box-shadow .15s}
 .s-input{width:280px}
 .key-input{width:240px}
 .s-input:focus,.key-input:focus,.select:focus{outline:0;border-color:#7c3aed;box-shadow:0 0 0 3px rgba(124,58,237,.12)}
-.stats{color:#6b7280;font-size:13px;margin-left:auto;font-weight:500}
+.stats{color:#6b7280;font-size:14px;margin-left:auto;font-weight:500}
 table{width:100%;border-collapse:separate;border-spacing:0;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(16,24,40,.06),0 8px 24px rgba(16,24,40,.06);margin:20px 24px;font-size:13px}
 thead th{background:#f8fafc;padding:13px 16px;text-align:left;font-weight:600;color:#64748b;font-size:12px;letter-spacing:.3px;border-bottom:1px solid #eceef3}
 tbody tr{border-bottom:1px solid #f1f3f7;transition:background .12s}
@@ -1072,25 +1072,53 @@ var SAMPLE_DATA=[
 {c:"中国烟草",p:"烟草育种工程师",l:"多地",e:"本科及以上",w:"六险二金，高福利",d:"2026-08-31",s:"中国烟草招聘",t:"央企",u:"https://www.tobacco.gov.cn"}
 ];
 
-function init(){
-    var saved=localStorage.getItem("xiaozhao_radar_data");
-    if(saved){try{D=JSON.parse(saved);}catch(e){D=[];}}
-    // ★ 优先用内置快照数据（保证用户打开页面立即看到校招数据，不依赖任何外部网络）
-    // 条件：localStorage 没数据 / 数据很少 / 数据不是聚合平台来源（说明是旧版小数据）
-    var hasAgg = D.some(function(x){return x.s==="校招信息聚合平台";});
-    if(D.length < 10 || (D.length < 300 && !hasAgg)){
-        try{
-            D = JSON.parse(JSON.stringify(TD_SNAPSHOT));
-            hasAgg = true;
-        }catch(e){}
+// ★ 打通同步闭环：页面首选从 GitHub Pages 读取每周五 sync_tencent_docs.py 自动同步的聚合数据 jobs.json
+//   jobs.json 结构：{updated:"YYYY-MM-DD", count:N, jobs:[...]}，每条含 s:"校招信息聚合平台" 标记
+//   加载成功即作为主数据源直接渲染，使「每周五同步 → 页面自动更新」真正生效；失败则分级回退
+async function loadRemoteJobs(){
+    try{
+        const resp = await fetch("jobs.json", {cache:"no-store"});
+        if(!resp.ok) throw new Error("HTTP "+resp.status);
+        const obj = await resp.json();
+        // 兼容两种格式：数组本身，或 {jobs:[...]} 包装
+        const arr = Array.isArray(obj) ? obj : (obj && obj.jobs);
+        if(Array.isArray(arr) && arr.length){
+            return arr;
+        }
+    }catch(e){
+        console.warn("[校招雷达] 远程 jobs.json 加载失败，回退本地快照：", e && e.message);
+    }
+    return null;
+}
+
+async function init(){
+    var hasAgg = false;
+    // 1) 首选：GitHub Pages 上每周五同步的聚合数据（打通同步闭环）
+    var remote = await loadRemoteJobs();
+    if(remote && remote.length){
+        D = remote;
+        hasAgg = D.some(function(x){return x.s==="校招信息聚合平台";});
+        console.log("[校招雷达] 已从 jobs.json 加载 "+D.length+" 条聚合数据");
+    } else {
+        // 2) 兜底：localStorage 已保存的用户数据
+        var saved=localStorage.getItem("xiaozhao_radar_data");
+        if(saved){try{D=JSON.parse(saved);}catch(e){D=[];}}
+        hasAgg = D.some(function(x){return x.s==="校招信息聚合平台";});
+        // 3) 再兜底：内置快照（保证离线/首次打开也能看到数据，不依赖任何外部网络）
+        if(D.length < 10 || (D.length < 300 && !hasAgg)){
+            try{
+                D = JSON.parse(JSON.stringify(TD_SNAPSHOT));
+                hasAgg = true;
+            }catch(e){}
+        }
     }
     var k=localStorage.getItem("xiaozhao_firecrawl_key");
     if(k){document.getElementById('apiKey').value=k;}
     var ak=localStorage.getItem("xiaozhao_anysearch_key");
     if(ak){document.getElementById('anysearchKey').value=ak;}
-    F=D.slice();render();
-    // ★ 后台静默尝试实时更新：有本地代理就拉腾讯文档最新数据，没代理则保持内置快照
-    // 普通用户无需理解代理/数据来源，一切自动
+    F=D.slice();render();saveData();
+    // ★ 后台静默尝试实时更新：仅当没有聚合数据时，才尝试本地代理拉腾讯文档最新数据
+    //   普通用户无需理解代理/数据来源，一切自动
     if(!hasAgg){
         setTimeout(function(){
             tdFallback(true).catch(function(){ /* 静默失败，保留快照 */ });
@@ -1681,7 +1709,7 @@ function clearAll(){
 }
 
 function esc(s){
-    return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+    return (s||"").replace(/&/g,"&amp;").replace(/"/g,"&quot;").replace(/'/g,"&#39;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
 }
 
 function editCell(cell,idx,f){
@@ -1727,7 +1755,8 @@ function render(){
         h+='<td><span class="edu-b" ondblclick="editCell(this,'+realIdx+',\'e\')">'+(item.e||"-")+'</span></td>';
         h+='<td><span ondblclick="editCell(this,'+realIdx+',\'w\')">'+(item.w||"-")+'</span></td>';
         h+='<td><span ondblclick="editCell(this,'+realIdx+',\'d\')">'+(item.d||"-")+'</span></td>';
-        h+='<td>'+(item.u?'<a class="link-btn" href="'+item.u+'" target="_blank">访问</a>':'-')+'</td>';
+        var safeUrl=(item.u&&/^https?:\/\//i.test(item.u))?item.u:'';
+        h+='<td>'+(safeUrl?'<a class="link-btn" href="'+safeUrl+'" target="_blank" rel="noopener noreferrer">访问</a>':'-')+'</td>';
         h+='<td><span class="'+cls+'">'+(item.s||"-")+'</span></td>';
         h+='<td><button class="del-btn" onclick="delRow('+realIdx+')">×</button></td>';
         h+='</tr>';
@@ -1766,12 +1795,19 @@ function sortData(f){
     });F=D.slice();filterData();saveData();toast("排序完成");
 }
 
+function csvCell(v){
+    var s=String(v==null?"":v);
+    if(s.indexOf(",")>=0||s.indexOf("\n")>=0||s.indexOf("\r")>=0||s.indexOf('"')>=0){
+        return '"'+s.replace(/"/g,'""')+'"';
+    }
+    return s;
+}
 function exportExcel(){
     if(!F.length){toast("没有数据");return;}
     var h=["序号","公司","职位","地点","学历","福利","截止日期","链接","来源"];
     var rows=[];F.forEach(function(item,i){rows.push([i+1,item.c,item.p,item.l,item.e,item.w,item.d,item.u,item.s]);});
-    var csv=h.join(",")+"\n";rows.forEach(function(r){csv+=r.join(",")+"\n";});
-    var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,"+encodeURIComponent(csv);a.download="xiaozhao-radar-data.csv";a.click();
+    var csv=h.map(csvCell).join(",")+"\n";rows.forEach(function(r){csv+=r.map(csvCell).join(",")+"\n";});
+    var a=document.createElement("a");a.href="data:text/csv;charset=utf-8,\uFEFF"+encodeURIComponent(csv);a.download="xiaozhao-radar-data.csv";a.click();
     toast("已导出CSV");
 }
 

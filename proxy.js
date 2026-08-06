@@ -6,7 +6,19 @@
 // 想换端口：node proxy.js 9090
 const http = require('http'), https = require('https'), { URL } = require('url');
 const PORT = parseInt(process.argv[2] || '8787', 10);
+// Origin 白名单：仅允许校招雷达页面和本地开发访问，防止被外部滥用
+const ALLOWED_ORIGINS = ['null', '', 'http://localhost', 'http://127.0.0.1', 'file://'];
+function isOriginAllowed(origin) {
+  if (!origin) return true; // 无 Origin 头的请求（如 curl）允许通过
+  return ALLOWED_ORIGINS.some(allowed => origin.startsWith(allowed));
+}
 http.createServer((req, res) => {
+  const origin = req.headers['origin'] || '';
+  if (!isOriginAllowed(origin)) {
+    res.writeHead(403, { 'Content-Type': 'text/plain' });
+    res.end('Forbidden: origin not allowed');
+    return;
+  }
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', '*');

@@ -5,6 +5,18 @@
 [![Version](https://img.shields.io/badge/version-2.3.0-blue)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)]()
 
+## 🎬 v2.4.0 核心亮点
+
+> 本次重点：**打通数据同步闭环** + 多项安全加固。
+
+- **🔄 打通同步闭环（核心）**：页面打开时首选从 GitHub Pages 读取每周五 `sync_tencent_docs.py` 自动同步的聚合数据 `jobs.json`（1355+ 条实时校招信息）。远程加载成功即作为主数据源直接渲染，真正让「每周五同步 → 页面自动更新」形成闭环；远程失败时分级回退：localStorage → 内置 `TD_SNAPSHOT` 快照 →（无聚合数据时）本地代理 `tdFallback` 兜底，离线也能看基础数据
+- **🛡 安全加固**：
+  - 外链渲染增加 `^https?://` 协议校验 + `rel="noopener noreferrer"`，杜绝 `javascript:` 伪协议 XSS 与 tabnabbing
+  - CSV 导出字段转义 + UTF-8 BOM 头，修复含逗号数据错位、Excel 中文乱码
+  - HTML 转义补全单引号（`&#39;`）
+  - 本地代理 `proxy.js` 新增 Origin 白名单 + 403 拦截，防止被外部网站滥用
+- 版本号升至 **v2.4.0**
+
 ## 🎬 v2.3.0 核心亮点
 
 > [观看 5 秒宣传视频](promo.mp4)（中文字幕 · 中文配音 · 1.1MB）
@@ -118,6 +130,12 @@ A: 导入函数已兼容多种字段命名（title/position、company、city/dis
 Apache 2.0 License
 
 ## 📋 更新日志
+
+### v2.4.0
+- **打通同步闭环（核心功能）**：`index.html` 初始化时首选 `fetch('jobs.json')` 从 GitHub Pages 读取每周五 `sync_tencent_docs.py` 自动同步的聚合数据（结构 `{updated,count,jobs:[...]}`，每条含 `s:"校招信息聚合平台"` 标记）；远程数据加载成功后直接作为主数据源渲染，使「每周五同步 → 页面自动更新」真正生效。远程失败时分级回退：localStorage → 内置 `TD_SNAPSHOT` 快照 →（无聚合数据时）本地代理 `tdFallback` 兜底，离线/首次打开也能看到数据
+- **安全加固**：① 外链渲染加 `^https?://` 校验 + `rel="noopener noreferrer"`，修复 `javascript:` 伪协议 XSS / tabnabbing；② CSV 导出新增字段转义 `csvCell()` + UTF-8 BOM，修复 Excel 中文乱码与含逗号字段错位；③ HTML 转义补全单引号 `&#39;`
+- **代理安全**：`proxy.js` 新增 Origin 白名单（`localhost`/`127.0.0.1`/`file://` 等）+ 403 拦截，防止本地代理被外部站点滥用
+- 版本号升至 v2.4.0
 
 ### v2.3.0
 - **新增 714 家公开校招节点**：通过公开校招信息聚合，新增 714 家企业官网/招聘页节点（原始提取 845 家，经 URL 合法性清洗移除 131 个无效链接/占位符），涵盖互联网科技、银行金融、能源电力、装备重工、汽车制造、医药医疗、快消零售、建筑地产、航天军工、通信运营商、石油化工、交通物流、农业食品等 13 大行业。站点总量从 142 → **856**（126 家企业官网 + 16 个官方公众号 + 714 家新增节点 + 3 家综合招聘网站）
