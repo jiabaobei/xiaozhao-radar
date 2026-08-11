@@ -1,6 +1,6 @@
 {
   "name": "xiaozhao-radar",
-  "version": "2.4.0",
+  "version": "2.4.1",
   "description": "Xiaozhao Radar - Campus Recruitment Radar, real-time job data via Firecrawl",
   "main": "xiaozhao-radar.html",
   "scripts": {

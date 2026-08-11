@@ -2,8 +2,15 @@
 
 > **🔍 AI驱动的校招信息聚合平台 —— 856 家央企/互联网大厂/各行业企业校招节点实时抓取，分批加载+分页浏览。**
 
-[![Version](https://img.shields.io/badge/version-2.4.0-blue)]()
+[![Version](https://img.shields.io/badge/version-2.4.1-blue)]()
 [![License](https://img.shields.io/badge/license-Apache%202.0-green)]()
+
+## 🎬 v2.4.1 核心亮点
+
+> 本周例行数据同步:校招数据从 1355 条 → **1404 条**(净增 49),行业分布正常。
+
+- **🔄 例行数据更新(2026-08-11)**:腾讯文档智能表格「27届实习提前批信息汇总」每周同步,`jobs.json` 已更新至 1404 条有效招聘信息(综合 489 / 互联网科技 329 / 装备重工 267 / 银行金融 145 / 汽车制造 53 等)
+- 版本号升至 **v2.4.1**
 
 ## 🎬 v2.4.0 核心亮点
 
@@ -130,6 +137,10 @@ A: 导入函数已兼容多种字段命名（title/position、company、city/dis
 Apache 2.0 License
 
 ## 📋 更新日志
+
+### v2.4.1
+- **例行数据同步(2026-08-11)**:从腾讯文档智能表格拉取最新数据,`jobs.json` 更新至 **1404 条**(较上版 1355 净增 49)
+- 版本号升至 v2.4.1
 
 ### v2.4.0
 - **打通同步闭环（核心功能）**：`index.html` 初始化时首选 `fetch('jobs.json')` 从 GitHub Pages 读取每周五 `sync_tencent_docs.py` 自动同步的聚合数据（结构 `{updated,count,jobs:[...]}`，每条含 `s:"校招信息聚合平台"` 标记）；远程数据加载成功后直接作为主数据源渲染，使「每周五同步 → 页面自动更新」真正生效。远程失败时分级回退：localStorage → 内置 `TD_SNAPSHOT` 快照 →（无聚合数据时）本地代理 `tdFallback` 兜底，离线/首次打开也能看到数据
